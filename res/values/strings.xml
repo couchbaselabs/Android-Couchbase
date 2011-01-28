@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    
+    <string name="app_name">CouchAppLauncher</string>
+<string name="install_couchdb">Click to Install CouchDB</string>
+<string name="missing_couchapp">Congratulations, CouchAppLauncher works correctly!</string>
+</resources>
