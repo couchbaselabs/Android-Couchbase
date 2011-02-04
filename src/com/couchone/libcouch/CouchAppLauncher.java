@@ -13,6 +13,8 @@ import java.util.Random;
 
 import org.json.JSONException;
 
+import com.couchone.libcouch.AndCouch;
+
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
@@ -262,10 +264,11 @@ public class CouchAppLauncher extends Activity {
 			// Check to see if a design doc already exists
 			String auth = Base64Coder.encodeString(adminUser + ":" + adminPass);
 			String[][] headers = { { "Authorization", "Basic " + auth } };
-			HTTPRequest req = HTTPRequest.get(ddocUrl, headers);
+			
+			AndCouch req = AndCouch.get(ddocUrl, headers);
 
 			if (req.status == 404) {
-				HTTPRequest.put(ddocUrl, data, headers);
+				AndCouch.put(ddocUrl, data, headers);
 			}
 
 		} catch (IOException e) {
