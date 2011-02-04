@@ -368,11 +368,14 @@ public class CouchAppLauncher extends Activity {
 		return false;
 	}
 	
-	public String readOrGeneratePass(String username) {
-		String passFile = getFilesDir() + "/" + username + ".passwd";
+	public String readOrGeneratePass(String user) {
+		return readOrGeneratePass(user, generatePassword(8));
+	}
+
+	public String readOrGeneratePass(String username, String pass) {
+		String passFile =  Environment.getExternalStorageDirectory() + "/couch/" + username + ".passwd";
 		File f = new File(passFile);
 		if (!f.exists()) {
-			String pass = generatePassword(8);
 			writeFile(passFile, username + ":" + pass);
 			return pass;
 		} else {
