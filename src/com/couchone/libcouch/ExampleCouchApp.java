@@ -1,19 +1,15 @@
 package com.couchone.libcouch;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
-
 import org.json.JSONException;
 
 import com.couchone.libcouch.AndCouch;
+import com.couchone.libcouch.Base64Coder;
+import com.couchone.libcouch.CouchUtils;
+import com.couchone.libcouch.ICouchClient;
+import com.couchone.libcouch.ICouchService;
 
 import android.app.Activity;
 import android.content.ComponentName;
@@ -22,30 +18,24 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.Window;
-import android.webkit.HttpAuthHandler;
-import android.webkit.WebChromeClient;
-import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.TextView;
 
-public class CouchAppLauncher extends Activity {
+public class ExampleCouchApp extends Activity {
 
 	// Put the databases you want to be created here, if you have
 	// a design doc you want to be created then place it in the
-	// assets folder eg:
-	// private String[] bootstrapDatabases = {"couchnotes", "noteshistory"};
+	// assets folder
+	// private String[] bootstrapDatabases = {"couchnotes"};
 	public String[] bootstrapDatabases = {};
 
 	// If you want to instantiate replication from your application
@@ -57,12 +47,18 @@ public class CouchAppLauncher extends Activity {
 	// will be launched once the databases have been initialised eg:
 	// private String appToLaunch = "couchnotes";
 	public String appToLaunch = null;
+
+	// This will generate the password for your databases against a key, if you want
+	// to use a constant password use CouchUtils.readOrGeneratePass("key", "password")
+	// adb shell cat /sdcard/couch/key.passwd to read the password 
+	public String adminPass = CouchUtils.readOrGeneratePass("default");
+
+	// RELAX, The above settings are all you need to get a basic CouchApp running.
 	
 	// This contains a mapping of database tags to their
 	// actual database names
 	private Map<String, String> tagToDbName = new HashMap<String, String>();
-
-	private int initialisedDatabases = 0;
+	private int initDatabases = 0;
 
 	public final static String COUCHDB_MARKET = "market://details?id=com.couchone.couchdb";
 	public final static String TAG = "CouchApp";
@@ -75,7 +71,6 @@ public class CouchAppLauncher extends Activity {
 	public int couchPort;
 
 	public String adminUser = null;
-	public String adminPass = null; //readOrGeneratePass("default");
 
 	private WebView webView = null;
 	private ICouchService couchService = null;
@@ -136,8 +131,8 @@ public class CouchAppLauncher extends Activity {
 	public void attemptLaunch() {
 
 		Intent intent = new Intent(ICouchService.class.getName());
-		Boolean canStart = bindService(intent, couchServiceConn,
-				Context.BIND_AUTO_CREATE);
+		Boolean canStart = 
+			bindService(intent, couchServiceConn, Context.BIND_AUTO_CREATE);
 
 		if (!canStart) {
 
@@ -179,12 +174,11 @@ public class CouchAppLauncher extends Activity {
 		public void databaseCreated(String db, String name, String pass,
 				String tag) throws RemoteException {
 
-			initialisedDatabases += 1;
+			initDatabases += 1;
 			tagToDbName.put(tag, db);
 
 			// All databases use the same user credentials
 			adminUser = name;
-			adminPass = pass;
 
 			ensureDesignDoc(db, tag);
 			initDatabases();
@@ -234,20 +228,18 @@ public class CouchAppLauncher extends Activity {
 	};
 
 	/*
-	 * This will loop through "dbfiles" in the assets folder and initialise a db
-	 * for each JSON file, db's that do not exist will be created, databases are
-	 * identified by their tag although that is not their actual name.
+	 * This will synchronously load all the databases in initDatabases
 	 */
 	private void initDatabases() throws RemoteException {
 
-		if (initialisedDatabases == bootstrapDatabases.length) {
+		if (initDatabases == bootstrapDatabases.length) {
 			localClient.sendMessage(localClient
 					.obtainMessage(DATABASES_INITIALISED));
 			return;
 		}
 
-		String dbTag = bootstrapDatabases[initialisedDatabases];
-		boolean hasCmdDb = inArray(requiresCommandDatabase, dbTag);
+		String dbTag = bootstrapDatabases[initDatabases];
+		boolean hasCmdDb = CouchUtils.inArray(requiresCommandDatabase, dbTag);
 		couchService.initDatabase(couchClient, dbTag, adminPass, hasCmdDb);
 	};
 
@@ -258,7 +250,7 @@ public class CouchAppLauncher extends Activity {
 	private void ensureDesignDoc(String dbName, String dbTag) {
 
 		try {
-			String data = readAsset(dbTag + ".json");
+			String data = CouchUtils.readAsset(getAssets(), dbTag + ".json");
 			String ddocUrl = couchUrl() + dbName + "/_design/" + dbTag;
 
 			// Check to see if a design doc already exists
@@ -286,29 +278,11 @@ public class CouchAppLauncher extends Activity {
 	private void launchWebview() {
 		if (appToLaunch != null) {
 			String dbName = tagToDbName.get(appToLaunch);
-			launchUrl(couchUrl() + dbName + "/_design/" + appToLaunch
-					+ "/index.html");
+			String url = couchUrl() + dbName + "/_design/" + appToLaunch + "/index.html";
+			webView = CouchUtils.launchUrl(this, url, adminUser, adminPass);
 		} else {
 			setContentView(R.layout.missing_couchapp);
 		}
-	};
-
-	/*
-	 * Create a WebView with the sensible defaults, and load a url within it
-	 */
-	private void launchUrl(String url) {
-		webView = new WebView(this);
-		webView.setWebChromeClient(new WebChromeClient());
-		webView.setWebViewClient(new CustomWebViewClient());
-		webView.getSettings().setJavaScriptEnabled(true);
-		webView.getSettings().setDomStorageEnabled(true);
-		webView.setScrollBarStyle(WebView.SCROLLBARS_OUTSIDE_OVERLAY);
-		webView.setHttpAuthUsernamePassword("127.0.0.1", "administrator",
-				adminUser, adminPass);
-		webView.requestFocusFromTouch();
-		webView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
-		setContentView(webView);
-		webView.loadUrl(url);
 	};
 
 	/*
@@ -318,32 +292,12 @@ public class CouchAppLauncher extends Activity {
 	 */
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		if ((keyCode == KeyEvent.KEYCODE_BACK) && webView != null
-				&& webView.canGoBack()) {
+		if ((keyCode == KeyEvent.KEYCODE_BACK) && webView != null && webView.canGoBack()) {
 			webView.goBack();
 			return true;
 		}
 		return super.onKeyDown(keyCode, event);
 	};
-
-	/*
-	 * The custom webview client ensures that when users click links, it opens
-	 * in the current webview and doesnt open the browser
-	 */
-	private class CustomWebViewClient extends WebViewClient {
-		@Override
-		public boolean shouldOverrideUrlLoading(WebView view, String url) {
-			view.loadUrl(url);
-			return true;
-		}
-
-		@Override
-		public void onReceivedHttpAuthRequest(WebView view,
-				HttpAuthHandler handler, String host, String realm) {
-			String[] up = view.getHttpAuthUsernamePassword(host, realm);
-			handler.proceed(up[0], up[1]);
-		}
-	}
 
 	private String couchUrl() {
 		return "http://" + couchHost + ":" + Integer.toString(couchPort) + "/";
@@ -352,73 +306,4 @@ public class CouchAppLauncher extends Activity {
 	private void launchMarket() {
 		startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(COUCHDB_MARKET)));
 	}
-
-	private String readAsset(String path) throws IOException {
-		InputStream is = getAssets().open(path);
-		int size = is.available();
-		byte[] buffer = new byte[size];
-		is.read(buffer);
-		is.close();
-		return new String(buffer);
-	}
-
-	private boolean inArray(String[] haystack, String needle) {
-		for (int i = 0; i < haystack.length; i++) {
-			if (haystack[0].equals(needle)) {
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	public String readOrGeneratePass(String user) {
-		return readOrGeneratePass(user, generatePassword(8));
-	}
-
-	public String readOrGeneratePass(String username, String pass) {
-		String passFile =  Environment.getExternalStorageDirectory() + "/couch/" + username + ".passwd";
-		File f = new File(passFile);
-		if (!f.exists()) {
-			writeFile(passFile, username + ":" + pass);
-			return pass;
-		} else {
-			return readFile(passFile).split(":")[1];
-		}
-	}
-
-	public String generatePassword(int length) {
-		String charset = "!0123456789abcdefghijklmnopqrstuvwxyz";
-		Random rand = new Random(System.currentTimeMillis());
-		StringBuffer sb = new StringBuffer();
-		for (int i = 0; i < length; i++) {
-			int pos = rand.nextInt(charset.length());
-			sb.append(charset.charAt(pos));
-		}
-		return sb.toString();
-	}
-
-	private String readFile(String filePath) {
-		String contents = "";
-		try {
-			File file = new File(filePath);
-			BufferedReader reader = new BufferedReader(new FileReader(file));
-			contents = reader.readLine();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return contents;
-	};
-
-	private void writeFile(String filePath, String data) {
-		try {
-			FileWriter writer = new FileWriter(filePath);
-			writer.write(data);
-			writer.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
 }
