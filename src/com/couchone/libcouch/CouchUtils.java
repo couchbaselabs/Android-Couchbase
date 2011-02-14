@@ -3,6 +3,7 @@ package com.couchone.libcouch;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -10,8 +11,10 @@ import java.io.InputStream;
 import java.util.Random;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.res.AssetManager;
 import android.os.Environment;
+import android.util.Log;
 import android.webkit.HttpAuthHandler;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -30,6 +33,7 @@ public class CouchUtils {
 		webView.getSettings().setJavaScriptEnabled(true);
 		webView.getSettings().setDomStorageEnabled(true);
 		webView.setScrollBarStyle(WebView.SCROLLBARS_OUTSIDE_OVERLAY);
+		// TODO: read host / realm from config
 		webView.setHttpAuthUsernamePassword("127.0.0.1", "administrator", user, pass);
 		webView.requestFocusFromTouch();
 		webView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
@@ -57,15 +61,16 @@ public class CouchUtils {
 		return false;
 	}
 	
-	public static String readOrGeneratePass(String user) {
-		return readOrGeneratePass(user, generatePassword(8));
+	public static String readOrGeneratePass(Activity act) {
+		return readOrGeneratePass(act, generatePassword(8));
 	}
 
-	public static String readOrGeneratePass(String username, String pass) {
-		String passFile =  Environment.getExternalStorageDirectory() + "/couch/" + username + ".passwd";
+	public static String readOrGeneratePass(Activity act, String pass) {
+		String username = act.getPackageName().replace(".", "_");
+		String passFile = act.getFilesDir() + "/" + username + ".passwd";
 		File f = new File(passFile);
 		if (!f.exists()) {
-			writeFile(passFile, username + ":" + pass);
+			writeFile(act, username + ".passwd", username + ":" + pass);
 			return pass;
 		} else {
 			return readFile(passFile).split(":")[1];
@@ -116,11 +121,11 @@ public class CouchUtils {
 		return contents;
 	};
 
-	private static void writeFile(String filePath, String data) {
+	private static void writeFile(Activity act, String fileName, String data) {
 		try {
-			FileWriter writer = new FileWriter(filePath);
-			writer.write(data);
-			writer.close();
+			FileOutputStream fos = act.openFileOutput(fileName, Context.MODE_WORLD_READABLE);
+			fos.write(data.getBytes());
+			fos.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

@@ -43,13 +43,13 @@ public class ExampleCouchApp extends Activity {
 	// private String appToLaunch = "couchnotes";
 	public String appToLaunch = null;
 
-	// This will generate the password for your databases against a key, if you want
-	// to use a constant password use CouchUtils.readOrGeneratePass("key", "password")
-	// adb shell cat /sdcard/couch/key.passwd to read the password 
-	public String adminPass = CouchUtils.readOrGeneratePass("default");
-
 	// RELAX, The above settings are all you need to get a basic CouchApp running.
 	
+	// This will generate the password for you, if you want
+	// to use a constant password use CouchUtils.readOrGeneratePass(this, "password")
+	//  adb shell cat /data/data/com.arandomurl.focus/files/com_arandomurl_focus.passwd
+	public String adminPass = null;
+
 	// This contains a mapping of database tags to their
 	// actual database names
 	private Map<String, String> tagToDbName = new HashMap<String, String>();
@@ -78,6 +78,7 @@ public class ExampleCouchApp extends Activity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
+		CouchUtils.readOrGeneratePass(this);
 		super.onCreate(savedInstanceState);
 		attemptLaunch();
 	};
