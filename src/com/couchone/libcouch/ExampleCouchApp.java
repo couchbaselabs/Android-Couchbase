@@ -78,7 +78,7 @@ public class ExampleCouchApp extends Activity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
-		CouchUtils.readOrGeneratePass(this);
+		adminPass = CouchUtils.readOrGeneratePass(this);
 		super.onCreate(savedInstanceState);
 		attemptLaunch();
 	};
