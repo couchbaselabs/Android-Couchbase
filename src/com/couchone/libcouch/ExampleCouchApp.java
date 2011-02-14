@@ -38,11 +38,6 @@ public class ExampleCouchApp extends Activity {
 	// private String[] bootstrapDatabases = {"couchnotes"};
 	public String[] bootstrapDatabases = {};
 
-	// If you want to instantiate replication from your application
-	// you will need a command database eg:
-	// private String[] requiresCommandDatabase = {"couchnotes"};
-	public String[] requiresCommandDatabase = {};
-
 	// If you name a database here, its _design/db/index.html
 	// will be launched once the databases have been initialised eg:
 	// private String appToLaunch = "couchnotes";
@@ -239,8 +234,8 @@ public class ExampleCouchApp extends Activity {
 		}
 
 		String dbTag = bootstrapDatabases[initDatabases];
-		boolean hasCmdDb = CouchUtils.inArray(requiresCommandDatabase, dbTag);
-		couchService.initDatabase(couchClient, dbTag, adminPass, hasCmdDb);
+		boolean hasCmdDb = false; // Command Databases are currently unused
+ 		couchService.initDatabase(couchClient, dbTag, adminPass, hasCmdDb);
 	};
 
 	/*
