@@ -9,11 +9,6 @@ interface ICouchService
      */
     void initCouchDB(ICouchClient callback);
     
-    /* The database may not be named as hinted here, this is to
-     * prevent conflicts
-     */
-    void initDatabase(ICouchClient callback, String name, String pass, boolean cmdDb);
-
     /*
      * 
      */
