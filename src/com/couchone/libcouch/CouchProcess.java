@@ -1,20 +1,12 @@
 package com.couchone.libcouch;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.util.Random;
-
-import org.json.JSONException;
-
 import android.util.Log;
 
 import com.google.ase.Exec;
@@ -54,7 +46,6 @@ public class CouchProcess {
 						Log.v(TAG, line);
 						if (line.contains("has started on")) {
 							started = true;
-							ensureAdmin();
 							service.couchStarted();
 						}
 					}
@@ -67,65 +58,7 @@ public class CouchProcess {
 			}
 		}).start();
 	}
-	
-	private void ensureAdmin() throws JSONException {
-		adminPass = readOrGeneratePass(adminUser);
-		// TODO: only works because I cant overwrite, check if exists in future
-		String url = url() + "_config/admins/" + adminUser;
-		try {
-			AndCouch.put(url, "\"" + adminPass + "\"");
-		} catch (JSONException e) {
-			// Config PUTS will return a string which causes HTTPRequest to throw
-		}
-	};
-	
-	public static String readOrGeneratePass(String username) {
-		String passFile = CouchInstaller.dataPath + "/" + username + ".passwd";
-		File f = new File(passFile);
-		if (!f.exists()) {
-			String pass = generatePassword(8);
-			writeFile(passFile, username + ":" + pass);
-			return pass;
-		} else {
-			return readFile(passFile).split(":")[1];
-		}
-	}
-
-	public static String generatePassword(int length) {
-		String charset = "!0123456789abcdefghijklmnopqrstuvwxyz";
-		Random rand = new Random(System.currentTimeMillis());
-		StringBuffer sb = new StringBuffer();
-		for (int i = 0; i < length; i++) {
-			int pos = rand.nextInt(charset.length());
-			sb.append(charset.charAt(pos));
-		}
-		return sb.toString();
-	}
-
-	private static String readFile(String filePath) {
-		String contents = "";
-		try {
-			File file = new File(filePath);
-			BufferedReader reader = new BufferedReader(new FileReader(file));
-			contents = reader.readLine();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return contents;
-	};
-
-	private static void writeFile(String filePath, String data) {
-		try {
-			FileWriter writer = new FileWriter(filePath);
-			writer.write(data);
-			writer.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	
+		
 	public void stop() {
 		try {
 			out.close();
