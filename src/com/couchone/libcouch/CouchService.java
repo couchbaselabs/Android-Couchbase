@@ -7,7 +7,6 @@ import java.util.Map.Entry;
 import com.couchone.libcouch.ICouchClient;
 import com.couchone.libcouch.ICouchService;
 
-import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -21,16 +20,6 @@ public class CouchService extends Service {
 	
 	// A list of couchClients that awaiting notifications of couch starting
 	private Map<String, ICouchClient> couchClients = new HashMap<String, ICouchClient>();
-
-	// Contains a mapping of database names to their listeners
-	public class dbListeners {
-		private Map<String, CouchCtrlListener> databases = new HashMap<String, CouchCtrlListener>();
-	}
-
-	// Contains a mapping of package names to database listeners
-	private Map<String, dbListeners> listeners = new HashMap<String, dbListeners>();
-
-	private NotificationManager mNM;
 
 	/*
 	 * This is called to start the service
@@ -47,7 +36,6 @@ public class CouchService extends Service {
 			couch.stop();
 		}
 		couchClients.clear();
-		mNM.cancelAll();
 	}
 
 	/*
@@ -77,12 +65,9 @@ public class CouchService extends Service {
 		}
 
 		/*
-		 * When a client quits we just cancel any control database listeners
-		 * dont actually stop couch, that is done when the last client unbinds
 		 */
 		@Override
 		public void quitCouchDB() throws RemoteException {
-			cancelListeners();
 		}
 	};
 
@@ -95,20 +80,6 @@ public class CouchService extends Service {
 			ICouchClient client = entry.getValue();
 			client.couchStarted(couch.host, couch.port);
 			couchClients.remove(entry.getKey());
-		}
-	}
-
-	/*
-	 * Control databases have a long polling listener, stop them when an application
-	 * quits
-	 */
-	private void cancelListeners() { 
-		String packageName = packageNameFromUid(Binder.getCallingUid());
-		if (listeners.containsKey(packageName)) {
-			dbListeners tmp = listeners.get(packageName);
-			for (Map.Entry<String, CouchCtrlListener> temp : tmp.databases.entrySet()) {
-				temp.getValue().cancel();
-			}
 		}
 	}
 
