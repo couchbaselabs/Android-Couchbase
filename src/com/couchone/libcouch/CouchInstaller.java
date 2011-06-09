@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
@@ -27,8 +26,7 @@ import android.os.Message;
 import android.util.Log;
 
 public class CouchInstaller {
-	
-	final static String baseUrl = "http://junk.arandomurl.com/";
+
 	public final static String appNamespace = "com.test.couch";
 	public final static String dataPath = "/data/data/" + appNamespace;
 	public final static String externalPath = Environment.getExternalStorageDirectory() + "/Android/data/" + appNamespace;
@@ -44,7 +42,8 @@ public class CouchInstaller {
 	public final static int PROGRESS = 1;
 	public final static int COMPLETE = 2;
 
-	public static void doInstall(Handler handler) throws IOException {
+	public static void doInstall(String url, String pkg, Handler handler) 
+		throws IOException {
 		
 		// WARNING: This deleted any previously installed couchdb data 
 		// and binaries stored on the sdcard to keep in line with usual 
@@ -56,10 +55,8 @@ public class CouchInstaller {
 			deleteDirectory(couchDir);
 		}
 		
-		for(String pkg : packageSet()) {
-			if(!(new File(externalPath + "/" + pkg + ".installedfiles")).exists()) {
-				installPackage(pkg, handler);
-			}	
+		if(!(new File(externalPath + "/" + pkg + ".installedfiles")).exists()) {
+			installPackage(url, pkg, handler);
 		}
 
 		Message done = Message.obtain();
@@ -70,7 +67,7 @@ public class CouchInstaller {
 	/* 
 	 * This fetches a given package from amazon and tarbombs it to the filsystem
 	 */
-	private static void installPackage(String pkg, Handler handler)
+	private static void installPackage(String baseUrl, String pkg, Handler handler)
 			throws IOException {
 		
 		Log.v(TAG, "Installing " + pkg);
@@ -190,47 +187,14 @@ public class CouchInstaller {
 	 * Verifies that CouchDB is installed by checking the package files we 
 	 * write on installation + the data directory on the sd card
 	 */
-	public static boolean checkInstalled() {
+	public static boolean checkInstalled(String pkg) {
 				
-		for (String pkg : packageSet()) {
-			File file = new File(externalPath + "/" + pkg + ".installedfiles");
-			if (!file.exists()) {
-				return false;
-			}
+		File file = new File(externalPath + "/" + pkg + ".installedfiles");
+		if (!file.exists()) {
+			return false;
 		}
 		
 		return new File(couchPath).exists();
-	}
-
-
-	/*
-	 * List of packages that need to be installed
-	 */
-	public static List<String> packageSet() {
-		ArrayList<String> packages = new ArrayList<String>();
-	
-		// TODO: Different CPU arch support.
-		// TODO: Some kind of sane remote manifest for this (remote updater)
-//		packages.add("couch-erl-1.0"); // CouchDB, Erlang, CouchJS
-//		packages.add("fixup-1.0"); //Cleanup old mochi, retrigger DNS fix install.
-//		packages.add("dns-fix"); //Add inet config to fallback on erlang resolver
-//		if (android.os.Build.VERSION.SDK_INT == 7) {
-//			packages.add("couch-icu-driver-eclair");
-//		} else if (android.os.Build.VERSION.SDK_INT == 8) {
-//			packages.add("couch-icu-driver-froyo");
-//		} else if (android.os.Build.VERSION.SDK_INT == 9) {	
-//			packages.add("couch-icu-driver-gingerbread");
-//		} else {
-//			throw new RuntimeException("Unsupported Platform");
-//		}
-		
-		if (android.os.Build.VERSION.SDK_INT == 8) {
-		    packages.add("release-1");
-		} else {
-		    throw new RuntimeException("Unsupported Platform");
-		}
-		
-		return packages;
 	}
 	
 	/*
