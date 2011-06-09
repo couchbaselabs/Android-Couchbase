@@ -27,35 +27,44 @@ import android.util.Log;
 
 public class CouchInstaller {
 
-	public final static String appNamespace = "com.test.couch";
-	public final static String dataPath = "/data/data/" + appNamespace;
-	public final static String externalPath = Environment.getExternalStorageDirectory() + "/Android/data/" + appNamespace;
-	
-	public final static String couchPath = externalPath + "/couchdb";
-	final static String erlangPath = externalPath + "/erlang";
-	
-	public final static String indexFile = externalPath + "/installedfiles.index";
+	public static String appNamespace;
 
 	final static String TAG = "CouchDB";
-	
+
 	public final static int ERROR = 0;
 	public final static int PROGRESS = 1;
 	public final static int COMPLETE = 2;
 
-	public static void doInstall(String url, String pkg, Handler handler) 
+	public static String dataPath() {
+		return "/data/data/" + appNamespace;
+	}
+	public static String externalPath() {
+		return Environment.getExternalStorageDirectory() + "/Android/data/" + appNamespace;
+	}
+	public static String erlangPath() {
+		return externalPath() + "/erlang";
+	}
+	public static String couchPath() {
+		return externalPath() + "/couchdb";
+	}
+	public static String indexFile() {
+		return externalPath() + "/installedfiles.index";
+	}
+
+	public static void doInstall(String url, String pkg, Handler handler)
 		throws IOException {
-		
-		// WARNING: This deleted any previously installed couchdb data 
-		// and binaries stored on the sdcard to keep in line with usual 
+
+		// WARNING: This deleted any previously installed couchdb data
+		// and binaries stored on the sdcard to keep in line with usual
 		// android app behaviour. However there doesnt look to be a way to protect
-		// ourselves from wiping the entire sdcard with a typo, so just be 
+		// ourselves from wiping the entire sdcard with a typo, so just be
 		// careful
-		File couchDir = new File(couchPath);
+		File couchDir = new File(couchPath());
 		if (couchDir.exists()) {
 			deleteDirectory(couchDir);
 		}
-		
-		if(!(new File(externalPath + "/" + pkg + ".installedfiles")).exists()) {
+
+		if(!(new File(externalPath() + "/" + pkg + ".installedfiles")).exists()) {
 			installPackage(url, pkg, handler);
 		}
 
@@ -64,38 +73,38 @@ public class CouchInstaller {
 		handler.sendMessage(done);
 	}
 
-	/* 
+	/*
 	 * This fetches a given package from amazon and tarbombs it to the filsystem
 	 */
 	private static void installPackage(String baseUrl, String pkg, Handler handler)
 			throws IOException {
-		
+
 		Log.v(TAG, "Installing " + pkg);
-		
+
 		HttpClient pkgHttpClient = new DefaultHttpClient();
 		HttpGet tgzrequest = new HttpGet(baseUrl + pkg + ".tgz");
 		HttpResponse response = pkgHttpClient.execute(tgzrequest);
 		ArrayList<String> installedfiles = new ArrayList<String>();
 		StatusLine status = response.getStatusLine();
 		Log.d(TAG, "Request returned status " + status);
-		
+
 		// Later used initialization of /data/data/...
 		ArrayList<String> allInstalledFiles = new ArrayList<String>();
 		Map<String, Integer> allInstalledFileModes = new HashMap<String, Integer>();
 		Map<String, String> allInstalledFileTypes = new HashMap<String, String>();
 		Map<String, String> allInstalledLinks = new HashMap<String, String>();
-		
+
 		if (status.getStatusCode() == 200) {
 			HttpEntity entity = response.getEntity();
 			InputStream instream = entity.getContent();
 			TarArchiveInputStream tarstream = new TarArchiveInputStream(
 					new GZIPInputStream(instream));
 			TarArchiveEntry e = null;
-			
+
 			int files = 0;
 			float filesInArchive = 0;
 			float filesUnpacked = 0;
-			
+
 			while ((e = tarstream.getNextTarEntry()) != null) {
 			    // Obtain count of files in this archive so that we can indicate install progress
 			    if (filesInArchive == 0 && e.getName().startsWith("filecount")) {
@@ -103,14 +112,14 @@ public class CouchInstaller {
 			        filesInArchive = Integer.valueOf(count[1]);
 			        continue;
 			    }
-			    
+
 				if (e.isDirectory()) {
 					File f = new File(e.getName());
-					if (!f.exists() && !new File(e.getName()).mkdir()) { 
+					if (!f.exists() && !new File(e.getName()).mkdir()) {
 						throw new IOException("Unable to create directory: " + e.getName());
 					}
 					Log.v(TAG, "MKDIR: " + e.getName());
-					
+
 					allInstalledFiles.add(e.getName());
 					allInstalledFileModes.put(e.getName(), e.getMode());
 					allInstalledFileTypes.put(e.getName(), "d");
@@ -118,7 +127,7 @@ public class CouchInstaller {
 					Log.v(TAG, "LINK: " + e.getName() + " -> " + e.getLinkName());
 					Runtime.getRuntime().exec(new String[] { "ln", "-s", e.getName(), e.getLinkName() });
 					installedfiles.add(e.getName());
-					
+
 					allInstalledFiles.add(e.getName());
 					allInstalledLinks.put(e.getName(), e.getLinkName());
 					allInstalledFileModes.put(e.getName(), e.getMode());
@@ -131,22 +140,22 @@ public class CouchInstaller {
 					Log.v(TAG, "Extracting " + e.getName());
 					IOUtils.copy(tarstream, new FileOutputStream(target));
 					installedfiles.add(e.getName());
-					
+
 					allInstalledFiles.add(e.getName());
 					allInstalledFileModes.put(e.getName(), e.getMode());
 					allInstalledFileTypes.put(e.getName(), "f");
 				}
-				
+
 				// getMode: 420 (644), 493 (755), 509 (775), 511 (link 775)
 				//Log.v(TAG, "File mode is " + e.getMode());
-				
+
 				//TODO: Set to actual tar perms.
-				Runtime.getRuntime().exec("chmod 755 " + e.getName()); 
-				
+				Runtime.getRuntime().exec("chmod 755 " + e.getName());
+
 				// This tells the ui how much progress has been made
 				files++;
 				Message progress = new Message();
-				progress.arg1 = (int) Math.round(++filesUnpacked / filesInArchive * 100);
+				progress.arg1 = Math.round(++filesUnpacked / filesInArchive * 100);
 				progress.arg2 = 0;
 				progress.what = CouchInstaller.PROGRESS;
 				handler.sendMessage(progress);
@@ -154,8 +163,8 @@ public class CouchInstaller {
 
 			tarstream.close();
 			instream.close();
-			
-			FileWriter iLOWriter = new FileWriter(externalPath + "/" + pkg + ".installedfiles");
+
+			FileWriter iLOWriter = new FileWriter(externalPath() + "/" + pkg + ".installedfiles");
 			for (String file : installedfiles) {
 				iLOWriter.write(file+"\n");
 			}
@@ -165,18 +174,18 @@ public class CouchInstaller {
 					Runtime.getRuntime().exec("sh " + file);
 				}
 			}
-			
+
 			// Write out full list of all installed files + file modes
-			iLOWriter = new FileWriter(indexFile);
-			
+			iLOWriter = new FileWriter(indexFile());
+
 			for (String file : allInstalledFiles) {
 			    iLOWriter.write(
-			            allInstalledFileTypes.get(file).toString() + " " + 
-			            allInstalledFileModes.get(file).toString() + " " + 
+			            allInstalledFileTypes.get(file).toString() + " " +
+			            allInstalledFileModes.get(file).toString() + " " +
 			            file + " " +
 			            allInstalledLinks.get(file) + "\n");
 			}
-			
+
 			iLOWriter.close();
 		} else {
 			throw new IOException();
@@ -184,19 +193,19 @@ public class CouchInstaller {
 	}
 
 	/*
-	 * Verifies that CouchDB is installed by checking the package files we 
+	 * Verifies that CouchDB is installed by checking the package files we
 	 * write on installation + the data directory on the sd card
 	 */
 	public static boolean checkInstalled(String pkg) {
-				
-		File file = new File(externalPath + "/" + pkg + ".installedfiles");
+
+		File file = new File(externalPath() + "/" + pkg + ".installedfiles");
 		if (!file.exists()) {
 			return false;
 		}
-		
-		return new File(couchPath).exists();
+
+		return new File(couchPath()).exists();
 	}
-	
+
 	/*
 	 * Recursively delete directory
 	 */

@@ -4,9 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.couchone.libcouch.ICouchClient;
-import com.couchone.libcouch.ICouchService;
-
 import android.app.Service;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -16,23 +13,24 @@ import android.os.RemoteException;
 
 public class CouchService extends Service {
 
-	private CouchProcess couch = new CouchProcess();
-	
+	private final CouchProcess couch = new CouchProcess();
+
 	// A list of couchClients that awaiting notifications of couch starting
-	private Map<String, ICouchClient> couchClients = new HashMap<String, ICouchClient>();
+	private final Map<String, ICouchClient> couchClients = new HashMap<String, ICouchClient>();
 
 	/*
 	 * This is called to start the service
 	 */
 	@Override
 	public void onCreate() {
+		CouchInstaller.appNamespace = this.getApplication().getPackageName();
 		couch.service = this;
-		couch.start("/system/bin/sh", CouchInstaller.couchPath + "/bin/couchdb", "");
+		couch.start("/system/bin/sh", CouchInstaller.couchPath() + "/bin/couchdb", "");
 	}
 
 	@Override
 	public void onDestroy() {
-		if (couch.started) { 
+		if (couch.started) {
 			couch.stop();
 		}
 		couchClients.clear();
@@ -75,7 +73,7 @@ public class CouchService extends Service {
 	 * once couch has started we need to notify all waiting clients
 	 */
 	void couchStarted() throws RemoteException {
-		
+
 		for (Entry<String, ICouchClient> entry : couchClients.entrySet()) {
 			ICouchClient client = entry.getValue();
 			client.couchStarted(couch.host, couch.port);
