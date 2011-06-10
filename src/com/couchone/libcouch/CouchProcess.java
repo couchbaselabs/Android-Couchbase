@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+
 import android.util.Log;
 
 import com.google.ase.Exec;
@@ -25,11 +26,11 @@ public class CouchProcess {
 	public final int port = 5984;
 
 	public boolean started = false;
-		    
+
 	private Integer pid;
 	private PrintStream out;
 	private BufferedReader in;
-	
+
 	public void start(String binary, String arg1, String arg2) {
 
 		int[] pidbuffer = new int[1];
@@ -39,9 +40,10 @@ public class CouchProcess {
 		in = new BufferedReader(new InputStreamReader(new FileInputStream(fd)));
 
 		new Thread(new Runnable() {
+			@Override
 			public void run() {
-				try {				
-					while (fd.valid()) {					
+				try {
+					while (fd.valid()) {
 						String line = in.readLine();
 						Log.v(TAG, line);
 						if (line.contains("has started on")) {
@@ -49,8 +51,6 @@ public class CouchProcess {
 							service.couchStarted();
 						}
 					}
-				} catch (IOException e) {
-					// Closed io from seperate thread
 				} catch (Exception e) {
 					Log.v(TAG, "CouchDB has stopped unexpectedly");
 					e.printStackTrace();
@@ -58,7 +58,7 @@ public class CouchProcess {
 			}
 		}).start();
 	}
-		
+
 	public void stop() {
 		try {
 			out.close();
@@ -69,7 +69,7 @@ public class CouchProcess {
 		}
 		started = false;
 	}
-	
+
 
 	public String url() {
 		return "http://" + host + ":" + Integer.toString(port) + "/";
