@@ -37,7 +37,7 @@ public class CouchInitializer
         return new File(destinationPath(), COUCHDIR).isDirectory();
     }
 
-    public static void initializeEnvironment(String appName, Handler handler)
+    public static void initializeEnvironment(Handler handler)
     {
         List<String> index = new ArrayList<String>();
 
@@ -83,9 +83,9 @@ public class CouchInitializer
 
                 if (handler != null) {
                     Message progress = new Message();
-                    progress.arg1 = Math.round(++entriesProcessed / index.size() * 100);
-                    progress.arg2 = 0;
-                    progress.what = CouchInstaller.PROGRESS;
+                    progress.arg1 = (int) ++entriesProcessed;
+                    progress.arg2 = index.size();
+                    progress.what = CouchService.PROGRESS;
                     handler.sendMessage(progress);
                 }
             }
@@ -94,7 +94,7 @@ public class CouchInitializer
             Message progress = new Message();
             progress.arg1 = 1;                  // Our way of telling the handler not to restart the activity
             progress.arg2 = 0;
-            progress.what = CouchInstaller.COMPLETE;
+            progress.what = CouchService.COMPLETE;
             handler.sendMessage(progress);
         } catch (IOException e) {
             // TODO Auto-generated catch block

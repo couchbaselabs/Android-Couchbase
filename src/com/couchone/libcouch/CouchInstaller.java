@@ -31,10 +31,6 @@ public class CouchInstaller {
 
 	final static String TAG = "CouchDB";
 
-	public final static int ERROR = 0;
-	public final static int PROGRESS = 1;
-	public final static int COMPLETE = 2;
-
 	public static String dataPath() {
 		return "/data/data/" + appNamespace;
 	}
@@ -69,7 +65,7 @@ public class CouchInstaller {
 		}
 
 		Message done = Message.obtain();
-		done.what = CouchInstaller.COMPLETE;
+		done.what = CouchService.COMPLETE;
 		handler.sendMessage(done);
 	}
 
@@ -155,9 +151,9 @@ public class CouchInstaller {
 				// This tells the ui how much progress has been made
 				files++;
 				Message progress = new Message();
-				progress.arg1 = Math.round(++filesUnpacked / filesInArchive * 100);
-				progress.arg2 = 0;
-				progress.what = CouchInstaller.PROGRESS;
+				progress.arg1 = (int) ++filesUnpacked;
+				progress.arg2 = (int) filesInArchive;
+				progress.what = CouchService.PROGRESS;
 				handler.sendMessage(progress);
 			}
 

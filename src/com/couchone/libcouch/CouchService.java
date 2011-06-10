@@ -1,22 +1,53 @@
 package com.couchone.libcouch;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import android.app.Service;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.os.Binder;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.os.RemoteException;
+import android.util.Log;
 
 public class CouchService extends Service {
 
 	private final CouchProcess couch = new CouchProcess();
+	private final String TAG = "CouchDB";
 
-	// A list of couchClients that awaiting notifications of couch starting
-	private final Map<String, ICouchClient> couchClients = new HashMap<String, ICouchClient>();
+	public final static int ERROR = 0;
+	public final static int PROGRESS = 1;
+	public final static int COMPLETE = 2;
+
+	public final static int INSTALLING = 3;
+	public final static int INITIALIZING = 4;
+
+	private int status;
+	private ICouchClient client;
+
+	private final Handler mHandler = new Handler() {
+		@Override
+		public void handleMessage(Message msg) {
+			switch (msg.what) {
+			case ERROR:
+				Log.v(TAG, "Error installing");
+				break;
+			case PROGRESS:
+				try {
+					client.progress(status, msg.arg1, msg.arg2);
+				} catch (RemoteException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				break;
+			case COMPLETE:
+				if (status == INSTALLING) {
+					initCouch();
+				} else {
+					couch.start("/system/bin/sh", CouchInstaller.couchPath() + "/bin/couchdb", "");
+				}
+				break;
+			}
+		}
+	};
 
 	/*
 	 * This is called to start the service
@@ -25,7 +56,6 @@ public class CouchService extends Service {
 	public void onCreate() {
 		CouchInstaller.appNamespace = this.getApplication().getPackageName();
 		couch.service = this;
-		couch.start("/system/bin/sh", CouchInstaller.couchPath() + "/bin/couchdb", "");
 	}
 
 	@Override
@@ -33,7 +63,7 @@ public class CouchService extends Service {
 		if (couch.started) {
 			couch.stop();
 		}
-		couchClients.clear();
+		client = null;
 	}
 
 	/*
@@ -51,14 +81,20 @@ public class CouchService extends Service {
 	public class CouchServiceImpl extends ICouchService.Stub {
 
 		@Override
-		public void initCouchDB(ICouchClient cb) throws RemoteException {
+		public void initCouchDB(ICouchClient cb, final String url, final String pkg) throws RemoteException {
 
-			String packageName = packageNameFromUid(Binder.getCallingUid());
-			couchClients.put(packageName, cb);
+			client = cb;
 
-			// Notify the client straight away that couch has started
-			if (couch.started == true) {
-				couchStarted();
+			if (!CouchInstaller.checkInstalled("release-1")) {
+				installCouch(url, pkg);
+			} else if (!CouchInitializer.isEnvironmentInitialized()) {
+				initCouch();
+			} else {
+				if (couch.started == true) {
+					couchStarted();
+				} else {
+					couch.start("/system/bin/sh", CouchInstaller.couchPath() + "/bin/couchdb", "");
+				}
 			}
 		}
 
@@ -73,17 +109,40 @@ public class CouchService extends Service {
 	 * once couch has started we need to notify all waiting clients
 	 */
 	void couchStarted() throws RemoteException {
-
-		for (Entry<String, ICouchClient> entry : couchClients.entrySet()) {
-			ICouchClient client = entry.getValue();
-			client.couchStarted(couch.host, couch.port);
-			couchClients.remove(entry.getKey());
-		}
+		client.couchStarted(couch.host, couch.port);
 	}
 
-	private String packageNameFromUid(int uid) {
-		PackageManager pm = getPackageManager();
-		String[] packages = pm.getPackagesForUid(Binder.getCallingUid());
-		return packages[0];
+	void installCouch(final String url, final String pkg) {
+		status = INSTALLING;
+		new Thread() {
+			@Override
+			public void run() {
+				try {
+					CouchInstaller.doInstall(url, pkg, mHandler);
+				} catch (Exception e) {
+					try {
+						client.progress(ERROR, 0, 0);
+					} catch (RemoteException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+					e.printStackTrace();
+				}
+			}
+		}.start();
+	}
+
+	void initCouch() {
+		status = INITIALIZING;
+		new Thread() {
+			@Override
+			public void run() {
+				try {
+					CouchInitializer.initializeEnvironment(mHandler);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}.start();
 	}
 }

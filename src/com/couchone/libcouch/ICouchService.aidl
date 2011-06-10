@@ -7,7 +7,7 @@ interface ICouchService
     /* Starts couchDB, calls "couchStarted" callback when 
      * complete 
      */
-    void initCouchDB(ICouchClient callback);
+    void initCouchDB(ICouchClient callback, String url, String pkg);
     
     /*
      * 
