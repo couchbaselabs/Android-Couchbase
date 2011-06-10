@@ -6,12 +6,10 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
-import android.util.Log;
 
 public class CouchService extends Service {
 
 	private final CouchProcess couch = new CouchProcess();
-	private final String TAG = "CouchDB";
 
 	public final static int ERROR = 0;
 	public final static int PROGRESS = 1;
@@ -26,25 +24,24 @@ public class CouchService extends Service {
 	private final Handler mHandler = new Handler() {
 		@Override
 		public void handleMessage(Message msg) {
-			switch (msg.what) {
-			case ERROR:
-				Log.v(TAG, "Error installing");
-				break;
-			case PROGRESS:
-				try {
+			try {
+				switch (msg.what) {
+				case ERROR:
+					client.progress(ERROR, 0, 0);
+					break;
+				case PROGRESS:
 					client.progress(status, msg.arg1, msg.arg2);
-				} catch (RemoteException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					break;
+				case COMPLETE:
+					if (status == INSTALLING) {
+						initCouch();
+					} else {
+						couch.start("/system/bin/sh", CouchInstaller.couchPath() + "/bin/couchdb", "");
+					}
+					break;
 				}
-				break;
-			case COMPLETE:
-				if (status == INSTALLING) {
-					initCouch();
-				} else {
-					couch.start("/system/bin/sh", CouchInstaller.couchPath() + "/bin/couchdb", "");
-				}
-				break;
+			} catch (RemoteException e) {
+				e.printStackTrace();
 			}
 		}
 	};
@@ -74,7 +71,6 @@ public class CouchService extends Service {
 		return new CouchServiceImpl();
 	}
 
-
 	/*
 	 * implements the callbacks that clients can call into the couchdb service
 	 */
@@ -85,7 +81,7 @@ public class CouchService extends Service {
 
 			client = cb;
 
-			if (!CouchInstaller.checkInstalled("release-1")) {
+			if (!CouchInstaller.checkInstalled(pkg)) {
 				installCouch(url, pkg);
 			} else if (!CouchInitializer.isEnvironmentInitialized()) {
 				initCouch();
@@ -123,7 +119,6 @@ public class CouchService extends Service {
 					try {
 						client.progress(ERROR, 0, 0);
 					} catch (RemoteException e1) {
-						// TODO Auto-generated catch block
 						e1.printStackTrace();
 					}
 					e.printStackTrace();
