@@ -7,6 +7,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import android.util.Log;
 
@@ -18,12 +22,7 @@ public class CouchProcess {
 
 	public CouchService service;
 
-	public static String adminUser = "admin";
-	public static String adminPass;
-
-	// TODO: read from config file
-	public final String host = "127.0.0.1";
-	public final int port = 5984;
+	public URL url;
 
 	public boolean started = false;
 
@@ -48,6 +47,7 @@ public class CouchProcess {
 						Log.v(TAG, line);
 						if (line.contains("has started on")) {
 							started = true;
+							url = new URL(matchURLs(line).get(0));
 							service.couchStarted();
 						}
 					}
@@ -72,7 +72,16 @@ public class CouchProcess {
 
 
 	public String url() {
-		return "http://" + host + ":" + Integer.toString(port) + "/";
+		return url.toString();
 	}
 
+	private ArrayList<String> matchURLs(String text) {
+		ArrayList<String> links = new ArrayList<String>();
+		String regex = "\\(?\\b(http://|www[.])[-A-Za-z0-9+&@#/%?=~_()|!:,.;]*[-A-Za-z0-9+&@#/%=~_()|]";
+		Matcher m = Pattern.compile(regex).matcher(text);
+		while(m.find()) {
+			links.add(m.group());
+		}
+		return links;
+	}
 }

@@ -71,6 +71,8 @@ public class CouchService extends Service {
 		return new CouchServiceImpl();
 	}
 
+
+
 	/*
 	 * implements the callbacks that clients can call into the couchdb service
 	 */
@@ -102,10 +104,10 @@ public class CouchService extends Service {
 	};
 
 	/*
-	 * once couch has started we need to notify all waiting clients
+	 * once couch has started we need to notify the waiting client
 	 */
 	void couchStarted() throws RemoteException {
-		client.couchStarted(couch.host, couch.port);
+		client.couchStarted(couch.url.getHost(), couch.url.getPort());
 	}
 
 	void installCouch(final String url, final String pkg) {
