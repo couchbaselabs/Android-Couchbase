@@ -192,14 +192,14 @@ public class CouchInstaller {
             		{"%app_name%", CouchInstaller.appNamespace}
             };
 
-            replace(CouchInstaller.couchPath() + "/erlang/erts-5.7.5/bin/start", replacements);
-            replace(CouchInstaller.couchPath() + "/erlang/erts-5.7.5/bin/erl", replacements);
-            replace(CouchInstaller.couchPath() + "/erlang/bin/start", replacements);
-            replace(CouchInstaller.couchPath() + "/erlang/bin/erl", replacements);
-            replace(CouchInstaller.couchPath() + "/couchdb/etc/init.d/couchdb", replacements);
-            replace(CouchInstaller.couchPath() + "/couchdb/etc/logrotate.d/couchdb", replacements);
-            replace(CouchInstaller.couchPath() + "/couchdb/lib/couchdb/erlang/lib/couch-1.0.2/ebin/couch.app", replacements);
-            replace(CouchInstaller.couchPath() + "/couchdb/lib/couchdb/erlang/lib/couch-1.0.2/priv/lib/couch_icu_driver.la", replacements);
+            replace(CouchInstaller.erlangPath() + "/erts-5.7.5/bin/start", replacements);
+            replace(CouchInstaller.erlangPath() + "/erts-5.7.5/bin/erl", replacements);
+            replace(CouchInstaller.erlangPath() + "/bin/start", replacements);
+            replace(CouchInstaller.erlangPath() + "/bin/erl", replacements);
+            replace(CouchInstaller.couchPath() + "/etc/init.d/couchdb", replacements);
+            replace(CouchInstaller.couchPath() + "/etc/logrotate.d/couchdb", replacements);
+            replace(CouchInstaller.couchPath() + "/lib/couchdb/erlang/lib/couch-1.0.2/ebin/couch.app", replacements);
+            replace(CouchInstaller.couchPath() + "/lib/couchdb/erlang/lib/couch-1.0.2/priv/lib/couch_icu_driver.la", replacements);
             replace(CouchInstaller.couchPath() + "/bin/couchdb", replacements);
             replace(CouchInstaller.couchPath() + "/bin/couchjs", replacements);
             replace(CouchInstaller.couchPath() + "/bin/couchjs_wrapper", replacements);
