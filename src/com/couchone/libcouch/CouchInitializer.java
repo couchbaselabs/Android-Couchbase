@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import android.os.Handler;
 import android.os.Message;
@@ -21,11 +20,6 @@ public class CouchInitializer
     private static final String DIRECTORY = "d";
     private static final String LINK = "l";
     private static final String FILE = "f";
-
-    // This cannot be dynamically determined because it changes between 2.1/2.2
-    private static String sourcePath() {
-    	return "sdcard/Android/data/" + CouchInstaller.appNamespace;
-    }
 
     // The private data directory to initialize into
     private static String destinationPath() {
@@ -60,7 +54,6 @@ public class CouchInitializer
         }
 
         Log.i(t, "initializing data directory for CouchDB and Erlang/OTP");
-        Log.d(t, "source path is " + sourcePath());
         Log.d(t, "destination path is " + destinationPath());
 
         /*
@@ -78,8 +71,7 @@ public class CouchInitializer
             while (entries.hasNext()) {
                 String entry = entries.next();
 
-                if (Pattern.matches(".*" + sourcePath() + File.separator + ".*", entry))
-                    initializeEntry(entry);
+                initializeEntry(entry);
 
                 if (handler != null) {
                     Message progress = new Message();
@@ -116,7 +108,7 @@ public class CouchInitializer
         Log.v(t, "initializing " + entry);
 
         String [] info = entry.split("\\s");
-        String neutralPath = info[2].replace(sourcePath(), "");
+        String neutralPath = info[2].replace(CouchInstaller.externalPath(), "");
 
         if (info[0].equals(DIRECTORY)) {
             new File(destinationPath(), neutralPath).mkdirs();
@@ -141,7 +133,7 @@ public class CouchInitializer
         if (info[0].equals(FILE)) {
             if (info[1].equals("420")) {
                 try {
-                    Runtime.getRuntime().exec("/system/bin/ln -s " + CouchInstaller.externalPath() + neutralPath + " " + destinationPath() + neutralPath);
+                	Runtime.getRuntime().exec("/system/bin/ln -s " + CouchInstaller.externalPath() + neutralPath + " " + destinationPath() + neutralPath);
                 } catch (IOException e) {
                     Log.e(t, "failed to link " + e.toString());
                     e.printStackTrace();

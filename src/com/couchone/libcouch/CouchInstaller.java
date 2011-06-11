@@ -102,6 +102,8 @@ public class CouchInstaller {
 			float filesUnpacked = 0;
 
 			while ((e = tarstream.getNextTarEntry()) != null) {
+
+				String fullName = externalPath() + "/" + e.getName();
 			    // Obtain count of files in this archive so that we can indicate install progress
 			    if (filesInArchive == 0 && e.getName().startsWith("filecount")) {
 			        String[] count = e.getName().split("\\.");
@@ -110,43 +112,43 @@ public class CouchInstaller {
 			    }
 
 				if (e.isDirectory()) {
-					File f = new File(e.getName());
-					if (!f.exists() && !new File(e.getName()).mkdir()) {
-						throw new IOException("Unable to create directory: " + e.getName());
+					File f = new File(fullName);
+					if (!f.exists() && !new File(fullName).mkdirs()) {
+						throw new IOException("Unable to create directory: " + fullName);
 					}
-					Log.v(TAG, "MKDIR: " + e.getName());
+					Log.v(TAG, "MKDIR: " + fullName);
 
-					allInstalledFiles.add(e.getName());
-					allInstalledFileModes.put(e.getName(), e.getMode());
-					allInstalledFileTypes.put(e.getName(), "d");
+					allInstalledFiles.add(fullName);
+					allInstalledFileModes.put(fullName, e.getMode());
+					allInstalledFileTypes.put(fullName, "d");
 				} else if (!"".equals(e.getLinkName())) {
-					Log.v(TAG, "LINK: " + e.getName() + " -> " + e.getLinkName());
-					Runtime.getRuntime().exec(new String[] { "ln", "-s", e.getName(), e.getLinkName() });
-					installedfiles.add(e.getName());
+					Log.v(TAG, "LINK: " + fullName + " -> " + e.getLinkName());
+					Runtime.getRuntime().exec(new String[] { "ln", "-s", fullName, e.getLinkName() });
+					installedfiles.add(fullName);
 
-					allInstalledFiles.add(e.getName());
-					allInstalledLinks.put(e.getName(), e.getLinkName());
-					allInstalledFileModes.put(e.getName(), e.getMode());
-					allInstalledFileTypes.put(e.getName(), "l");
+					allInstalledFiles.add(fullName);
+					allInstalledLinks.put(fullName, e.getLinkName());
+					allInstalledFileModes.put(fullName, e.getMode());
+					allInstalledFileTypes.put(fullName, "l");
 				} else {
-					File target = new File(e.getName());
+					File target = new File(fullName);
 					if(target.getParent() != null) {
 						new File(target.getParent()).mkdirs();
 					}
-					Log.v(TAG, "Extracting " + e.getName());
+					Log.v(TAG, "Extracting " + fullName);
 					IOUtils.copy(tarstream, new FileOutputStream(target));
-					installedfiles.add(e.getName());
+					installedfiles.add(fullName);
 
-					allInstalledFiles.add(e.getName());
-					allInstalledFileModes.put(e.getName(), e.getMode());
-					allInstalledFileTypes.put(e.getName(), "f");
+					allInstalledFiles.add(fullName);
+					allInstalledFileModes.put(fullName, e.getMode());
+					allInstalledFileTypes.put(fullName, "f");
 				}
 
 				// getMode: 420 (644), 493 (755), 509 (775), 511 (link 775)
 				//Log.v(TAG, "File mode is " + e.getMode());
 
 				//TODO: Set to actual tar perms.
-				Runtime.getRuntime().exec("chmod 755 " + e.getName());
+				Runtime.getRuntime().exec("chmod 755 " + fullName);
 
 				// This tells the ui how much progress has been made
 				files++;
