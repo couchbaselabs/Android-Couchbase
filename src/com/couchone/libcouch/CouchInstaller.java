@@ -1,7 +1,9 @@
 package com.couchone.libcouch;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -185,6 +187,24 @@ public class CouchInstaller {
 			}
 
 			iLOWriter.close();
+
+            String[][] replacements = new String[][]{
+            		{"%app_name%", CouchInstaller.appNamespace}
+            };
+
+            replace(CouchInstaller.couchPath() + "/erlang/erts-5.7.5/bin/start", replacements);
+            replace(CouchInstaller.couchPath() + "/erlang/erts-5.7.5/bin/erl", replacements);
+            replace(CouchInstaller.couchPath() + "/erlang/bin/start", replacements);
+            replace(CouchInstaller.couchPath() + "/erlang/bin/erl", replacements);
+            replace(CouchInstaller.couchPath() + "/couchdb/etc/init.d/couchdb", replacements);
+            replace(CouchInstaller.couchPath() + "/couchdb/etc/logrotate.d/couchdb", replacements);
+            replace(CouchInstaller.couchPath() + "/couchdb/lib/couchdb/erlang/lib/couch-1.0.2/ebin/couch.app", replacements);
+            replace(CouchInstaller.couchPath() + "/couchdb/lib/couchdb/erlang/lib/couch-1.0.2/priv/lib/couch_icu_driver.la", replacements);
+            replace(CouchInstaller.couchPath() + "/bin/couchdb", replacements);
+            replace(CouchInstaller.couchPath() + "/bin/couchjs", replacements);
+            replace(CouchInstaller.couchPath() + "/bin/couchjs_wrapper", replacements);
+            replace(CouchInstaller.couchPath() + "/etc/couchdb/local.ini", replacements);
+
 		} else {
 			throw new IOException();
 		}
@@ -219,4 +239,27 @@ public class CouchInstaller {
 		}
 		return dir.delete();
 	}
+
+    static void replace(String fileName, String[][] replacements) {
+        try {
+        	File file = new File(fileName);
+        	BufferedReader reader = new BufferedReader(new FileReader(file));
+        	String line = "", content = "";
+        	while((line = reader.readLine()) != null) {
+        		content += line + "\n";
+        	}
+
+        	for (int i = 0; i < replacements.length; i++) {
+        		content = content.replaceAll(replacements[i][0], replacements[i][1]);
+        	}
+        	reader.close();
+        	FileWriter writer = new FileWriter(fileName);
+        	writer.write(content);
+        	writer.close();
+        	Runtime.getRuntime().exec("/system/bin/chmod 755 " + fileName);
+        } catch (IOException e) {
+        	e.printStackTrace();
+        }
+    }
+
 }
