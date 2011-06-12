@@ -189,7 +189,8 @@ public class CouchInstaller {
 			iLOWriter.close();
 
             String[][] replacements = new String[][]{
-            		{"%app_name%", CouchInstaller.appNamespace}
+            	{"%app_name%", CouchInstaller.appNamespace},
+            	{"%sdk_int%", Integer.toString(android.os.Build.VERSION.SDK_INT)}
             };
 
             replace(CouchInstaller.erlangPath() + "/erts-5.7.5/bin/start", replacements);
