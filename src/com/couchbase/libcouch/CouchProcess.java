@@ -1,4 +1,4 @@
-package com.couchone.libcouch;
+package com.couchbase.libcouch;
 
 import java.io.BufferedReader;
 import java.io.FileDescriptor;

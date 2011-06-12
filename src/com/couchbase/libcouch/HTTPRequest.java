@@ -1,4 +1,4 @@
-package com.couchone.libcouch;
+package com.couchbase.libcouch;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -25,15 +25,15 @@ public class HTTPRequest {
 		this.status = status;
 	}
 
-	public static HTTPRequest post(String url, String data) throws JSONException { 
+	public static HTTPRequest post(String url, String data) throws JSONException {
 		return post(url, data, new String[][]{});
 	}
-	
+
 	public static HTTPRequest post(String url, String data, String[][] headers)
 			throws JSONException {
 		return HTTPRequest.httpRequest("POST", url, data, headers);
 	}
-	
+
 	public static HTTPRequest put(String url, String data) throws JSONException {
 		return put(url, data, new String[][]{});
 	}
@@ -108,13 +108,14 @@ public class HTTPRequest {
 			e.printStackTrace();
 		}
 
-		JSONObject json= sb.toString().length() == 0 
-			? new JSONObject() 
+		JSONObject json= sb.toString().length() == 0
+			? new JSONObject()
 			: new JSONObject(sb.toString());
-			
+
 		return new HTTPRequest(headers, json, sb.toString(), statusCode);
 	};
 
+	@Override
 	public String toString() {
 		return "HTTPResult -> status: " + Integer.toString(status);
 	}

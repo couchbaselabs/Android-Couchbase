@@ -1,6 +1,6 @@
-package com.couchone.libcouch;
+package com.couchbase.libcouch;
 
-import com.couchone.libcouch.ICouchClient;
+import com.couchbase.libcouch.ICouchClient;
 
 interface ICouchService
 {

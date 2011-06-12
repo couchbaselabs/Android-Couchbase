@@ -1,4 +1,4 @@
-package com.couchone.libcouch;
+package com.couchbase.libcouch;
 
 interface ICouchClient
 {

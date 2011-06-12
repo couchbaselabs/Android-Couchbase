@@ -1,9 +1,9 @@
-package com.couchone.libcouch;
+package com.couchbase.libcouch;
 
 /*
- * AndCouch is a very simple http wrapper library for CouchDB with minimal 
+ * AndCouch is a very simple http wrapper library for CouchDB with minimal
  * dependencies
- * 
+ *
  */
 
 import java.io.BufferedReader;
@@ -31,15 +31,15 @@ public class AndCouch {
 		this.status = status;
 	}
 
-	public static AndCouch post(String url, String data) throws JSONException { 
+	public static AndCouch post(String url, String data) throws JSONException {
 		return post(url, data, new String[][]{});
 	}
-	
+
 	public static AndCouch post(String url, String data, String[][] headers)
 			throws JSONException {
 		return AndCouch.httpRequest("POST", url, data, headers);
 	}
-	
+
 	public static AndCouch put(String url, String data) throws JSONException {
 		return put(url, data, new String[][]{});
 	}
@@ -114,13 +114,14 @@ public class AndCouch {
 			e.printStackTrace();
 		}
 
-		JSONObject json= sb.toString().length() == 0 
-			? new JSONObject() 
+		JSONObject json= sb.toString().length() == 0
+			? new JSONObject()
 			: new JSONObject(sb.toString());
-			
+
 		return new AndCouch(headers, json, sb.toString(), statusCode);
 	};
 
+	@Override
 	public String toString() {
 		return "HTTPResult -> status: " + Integer.toString(status);
 	}

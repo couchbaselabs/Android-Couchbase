@@ -1,4 +1,4 @@
-package com.couchone.libcouch;
+package com.couchbase.libcouch;
 
 import android.app.Service;
 import android.content.Intent;
