@@ -1,5 +1,9 @@
 package com.couchbase.libcouch;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.net.URL;
+
 import android.app.Service;
 import android.content.Intent;
 import android.os.Handler;
@@ -14,6 +18,7 @@ public class CouchService extends Service {
 	public final static int ERROR = 0;
 	public final static int PROGRESS = 1;
 	public final static int COMPLETE = 2;
+	public final static int COUCH_STARTED = 5;
 
 	public final static int INSTALLING = 3;
 	public final static int INITIALIZING = 4;
@@ -27,17 +32,25 @@ public class CouchService extends Service {
 			try {
 				switch (msg.what) {
 				case ERROR:
-					client.progress(ERROR, 0, 0);
+					Exception e = (Exception) msg.obj;
+					StringWriter sw = new StringWriter();
+					e.printStackTrace(new PrintWriter(sw));
+					String stacktrace = sw.toString();
+					client.exit(stacktrace);
 					break;
 				case PROGRESS:
-					client.progress(status, msg.arg1, msg.arg2);
+					client.installing(msg.arg1, msg.arg2);
 					break;
 				case COMPLETE:
 					if (status == INSTALLING) {
 						initCouch();
 					} else {
-						couch.start("/system/bin/sh", CouchInstaller.couchPath() + "/bin/couchdb", "");
+						startCouch();
 					}
+					break;
+				case COUCH_STARTED:
+					URL url = (URL) msg.obj;
+					client.couchStarted(url.getHost(), url.getPort());
 					break;
 				}
 			} catch (RemoteException e) {
@@ -80,9 +93,7 @@ public class CouchService extends Service {
 
 		@Override
 		public void initCouchDB(ICouchClient cb, final String url, final String pkg) throws RemoteException {
-
 			client = cb;
-
 			if (!CouchInstaller.checkInstalled(pkg)) {
 				installCouch(url, pkg);
 			} else if (!CouchInitializer.isEnvironmentInitialized()) {
@@ -91,7 +102,7 @@ public class CouchService extends Service {
 				if (couch.started == true) {
 					couchStarted();
 				} else {
-					couch.start("/system/bin/sh", CouchInstaller.couchPath() + "/bin/couchdb", "");
+					startCouch();
 				}
 			}
 		}
@@ -110,6 +121,10 @@ public class CouchService extends Service {
 		client.couchStarted(couch.url.getHost(), couch.url.getPort());
 	}
 
+	void startCouch() {
+		couch.start("/system/bin/sh", CouchInstaller.couchPath() + "/bin/couchdb", "", mHandler);
+	}
+
 	void installCouch(final String url, final String pkg) {
 		status = INSTALLING;
 		new Thread() {
@@ -118,11 +133,6 @@ public class CouchService extends Service {
 				try {
 					CouchInstaller.doInstall(url, pkg, mHandler);
 				} catch (Exception e) {
-					try {
-						client.progress(ERROR, 0, 0);
-					} catch (RemoteException e1) {
-						e1.printStackTrace();
-					}
 					e.printStackTrace();
 				}
 			}

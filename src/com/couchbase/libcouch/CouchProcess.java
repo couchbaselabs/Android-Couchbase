@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 
 import com.google.ase.Exec;
@@ -30,7 +32,7 @@ public class CouchProcess {
 	private PrintStream out;
 	private BufferedReader in;
 
-	public void start(String binary, String arg1, String arg2) {
+	public void start(String binary, String arg1, String arg2, final Handler handler) {
 
 		int[] pidbuffer = new int[1];
 		final FileDescriptor fd = Exec.createSubprocess(binary, arg1, arg2, pidbuffer);
@@ -48,12 +50,13 @@ public class CouchProcess {
 						if (line.contains("has started on")) {
 							started = true;
 							url = new URL(matchURLs(line).get(0));
-							service.couchStarted();
+							Message.obtain(handler, CouchService.COUCH_STARTED, url)
+								.sendToTarget();
 						}
 					}
 				} catch (Exception e) {
 					Log.v(TAG, "CouchDB has stopped unexpectedly");
-					e.printStackTrace();
+					Message.obtain(handler, CouchService.ERROR, e).sendToTarget();
 				}
 			}
 		}).start();
@@ -69,7 +72,6 @@ public class CouchProcess {
 		}
 		started = false;
 	}
-
 
 	public String url() {
 		return url.toString();
