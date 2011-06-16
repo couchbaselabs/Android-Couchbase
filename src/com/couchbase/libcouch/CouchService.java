@@ -37,7 +37,9 @@ public class CouchService extends Service {
 					StringWriter sw = new StringWriter();
 					e.printStackTrace(new PrintWriter(sw));
 					String stacktrace = sw.toString();
-					client.exit(stacktrace);
+					if (client != null) {
+						client.exit(stacktrace);
+					}
 					break;
 				case DOWNLOAD:
 					client.downloading(msg.arg1, msg.arg2);
