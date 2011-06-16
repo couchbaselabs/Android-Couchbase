@@ -157,7 +157,7 @@ public class CouchInstaller {
 				Message progress = new Message();
 				progress.arg1 = (int) ++filesUnpacked;
 				progress.arg2 = (int) filesInArchive;
-				progress.what = CouchService.PROGRESS;
+				progress.what = CouchService.DOWNLOAD;
 				handler.sendMessage(progress);
 			}
 
