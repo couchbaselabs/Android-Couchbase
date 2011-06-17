@@ -92,6 +92,12 @@ public class CouchInstaller {
 		Map<String, String> allInstalledFileTypes = new HashMap<String, String>();
 		Map<String, String> allInstalledLinks = new HashMap<String, String>();
 
+		// Ensure /sdcard/Android/data/com.my.app exists
+		File externalPath = new File(externalPath() + "/");
+		if (!externalPath.exists()) {
+			externalPath.mkdirs();
+		}
+
 		if (status.getStatusCode() == 200) {
 			HttpEntity entity = response.getEntity();
 			InputStream instream = entity.getContent();
