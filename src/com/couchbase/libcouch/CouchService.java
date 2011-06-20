@@ -24,7 +24,6 @@ public class CouchService extends Service {
 	public final static int INSTALLING = 3;
 	public final static int INITIALIZING = 4;
 
-	private int status;
 	private ICouchClient client;
 
 	private final Handler mHandler = new Handler() {
@@ -41,18 +40,11 @@ public class CouchService extends Service {
 						client.exit(stacktrace);
 					}
 					break;
-				case DOWNLOAD:
-					client.downloading(msg.arg1, msg.arg2);
-					break;
 				case PROGRESS:
 					client.installing(msg.arg1, msg.arg2);
 					break;
 				case COMPLETE:
-					if (status == INSTALLING) {
-						initCouch();
-					} else {
-						startCouch();
-					}
+					startCouch();
 					break;
 				case COUCH_STARTED:
 					URL url = (URL) msg.obj;
@@ -102,8 +94,6 @@ public class CouchService extends Service {
 			client = cb;
 			if (!CouchInstaller.checkInstalled(pkg)) {
 				installCouch(url, pkg);
-			} else if (!CouchInitializer.isEnvironmentInitialized()) {
-				initCouch();
 			} else {
 				if (couch.started == true) {
 					couchStarted();
@@ -128,31 +118,16 @@ public class CouchService extends Service {
 	}
 
 	void startCouch() {
-		couch.start("/system/bin/sh", CouchInstaller.couchPath() + "/bin/couchdb", "", mHandler);
+		couch.start("/system/bin/sh", CouchInstaller.dataPath() + "/couchdb/bin/couchdb", "", mHandler);
 	}
 
 	void installCouch(final String url, final String pkg) {
-		status = INSTALLING;
 		final CouchService service = this;
 		new Thread() {
 			@Override
 			public void run() {
 				try {
 					CouchInstaller.doInstall(url, pkg, mHandler, service);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}.start();
-	}
-
-	void initCouch() {
-		status = INITIALIZING;
-		new Thread() {
-			@Override
-			public void run() {
-				try {
-					CouchInitializer.initializeEnvironment(mHandler);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}

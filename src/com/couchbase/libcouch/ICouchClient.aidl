@@ -6,7 +6,6 @@ interface ICouchClient
 	void couchStarted(String host, int port);
 
     /* Callback for notifications on how the CouchDB install is progressing */
-    void downloading(int completed, int total);
     void installing(int completed, int total);
 
     void exit(String error);
