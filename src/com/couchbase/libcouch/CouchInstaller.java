@@ -49,7 +49,7 @@ public class CouchInstaller {
 		return externalPath() + "/installedfiles.index";
 	}
 
-	public static void doInstall(String url, String pkg, Handler handler)
+	public static void doInstall(String url, String pkg, Handler handler, CouchService service)
 		throws IOException {
 
 		// WARNING: This deleted any previously installed couchdb data
@@ -63,7 +63,7 @@ public class CouchInstaller {
 		}
 
 		if(!(new File(externalPath() + "/" + pkg + ".installedfiles")).exists()) {
-			installPackage(url, pkg, handler);
+			installPackage(url, pkg, handler, service);
 		}
 
 		Message done = Message.obtain();
@@ -74,147 +74,162 @@ public class CouchInstaller {
 	/*
 	 * This fetches a given package from amazon and tarbombs it to the filsystem
 	 */
-	private static void installPackage(String baseUrl, String pkg, Handler handler)
+	private static void installPackage(String baseUrl, String pkg, Handler handler, CouchService service)
 			throws IOException {
 
 		Log.v(TAG, "Installing " + pkg);
 
-		HttpClient pkgHttpClient = new DefaultHttpClient();
-		HttpGet tgzrequest = new HttpGet(baseUrl + pkg + ".tgz");
-		HttpResponse response = pkgHttpClient.execute(tgzrequest);
-		ArrayList<String> installedfiles = new ArrayList<String>();
-		StatusLine status = response.getStatusLine();
-		Log.d(TAG, "Request returned status " + status);
-
 		// Later used initialization of /data/data/...
+		ArrayList<String> installedfiles = new ArrayList<String>();
 		ArrayList<String> allInstalledFiles = new ArrayList<String>();
 		Map<String, Integer> allInstalledFileModes = new HashMap<String, Integer>();
 		Map<String, String> allInstalledFileTypes = new HashMap<String, String>();
 		Map<String, String> allInstalledLinks = new HashMap<String, String>();
 
+		InputStream instream = null;
+		
+		// If no URL is provided, load tarball from assets.
+		if (baseUrl == null) {
+			// XXX Stupid android 2.1 bug
+			// XXX Cannot load compressed assets >1M and
+			// XXX most files are automatically compressed,
+			// XXX Certain files are NOT auto compressed (eg. jpg).
+			instream = service.getAssets().open(pkg + ".tgz" + ".jpg");
+		}
+		
+		else {
+			HttpClient pkgHttpClient = new DefaultHttpClient();
+			HttpGet tgzrequest = new HttpGet(baseUrl + pkg + ".tgz");
+			HttpResponse response = pkgHttpClient.execute(tgzrequest);
+			StatusLine status = response.getStatusLine();
+			Log.d(TAG, "Request returned status " + status);
+			
+			if (status.getStatusCode() == 200) {
+				HttpEntity entity = response.getEntity();
+				instream = entity.getContent();
+			}
+
+			else {
+				throw new IOException();
+			}
+		}
+		
 		// Ensure /sdcard/Android/data/com.my.app exists
 		File externalPath = new File(externalPath() + "/");
 		if (!externalPath.exists()) {
 			externalPath.mkdirs();
 		}
 
-		if (status.getStatusCode() == 200) {
-			HttpEntity entity = response.getEntity();
-			InputStream instream = entity.getContent();
-			TarArchiveInputStream tarstream = new TarArchiveInputStream(
-					new GZIPInputStream(instream));
-			TarArchiveEntry e = null;
+		TarArchiveInputStream tarstream = new TarArchiveInputStream(
+				new GZIPInputStream(instream));
+		TarArchiveEntry e = null;
 
-			int files = 0;
-			float filesInArchive = 0;
-			float filesUnpacked = 0;
+		int files = 0;
+		float filesInArchive = 0;
+		float filesUnpacked = 0;
 
-			while ((e = tarstream.getNextTarEntry()) != null) {
+		while ((e = tarstream.getNextTarEntry()) != null) {
 
-				String fullName = externalPath() + "/" + e.getName();
-			    // Obtain count of files in this archive so that we can indicate install progress
-			    if (filesInArchive == 0 && e.getName().startsWith("filecount")) {
-			        String[] count = e.getName().split("\\.");
-			        filesInArchive = Integer.valueOf(count[1]);
-			        continue;
-			    }
+			String fullName = externalPath() + "/" + e.getName();
+			// Obtain count of files in this archive so that we can indicate install progress
+			if (filesInArchive == 0 && e.getName().startsWith("filecount")) {
+				String[] count = e.getName().split("\\.");
+				filesInArchive = Integer.valueOf(count[1]);
+				continue;
+			}
 
-				if (e.isDirectory()) {
-					File f = new File(fullName);
-					if (!f.exists() && !new File(fullName).mkdirs()) {
-						throw new IOException("Unable to create directory: " + fullName);
-					}
-					Log.v(TAG, "MKDIR: " + fullName);
-
-					allInstalledFiles.add(fullName);
-					allInstalledFileModes.put(fullName, e.getMode());
-					allInstalledFileTypes.put(fullName, "d");
-				} else if (!"".equals(e.getLinkName())) {
-					Log.v(TAG, "LINK: " + fullName + " -> " + e.getLinkName());
-					Runtime.getRuntime().exec(new String[] { "ln", "-s", fullName, e.getLinkName() });
-					installedfiles.add(fullName);
-
-					allInstalledFiles.add(fullName);
-					allInstalledLinks.put(fullName, e.getLinkName());
-					allInstalledFileModes.put(fullName, e.getMode());
-					allInstalledFileTypes.put(fullName, "l");
-				} else {
-					File target = new File(fullName);
-					if(target.getParent() != null) {
-						new File(target.getParent()).mkdirs();
-					}
-					Log.v(TAG, "Extracting " + fullName);
-					IOUtils.copy(tarstream, new FileOutputStream(target));
-					installedfiles.add(fullName);
-
-					allInstalledFiles.add(fullName);
-					allInstalledFileModes.put(fullName, e.getMode());
-					allInstalledFileTypes.put(fullName, "f");
+			if (e.isDirectory()) {
+				File f = new File(fullName);
+				if (!f.exists() && !new File(fullName).mkdirs()) {
+					throw new IOException("Unable to create directory: " + fullName);
 				}
+				Log.v(TAG, "MKDIR: " + fullName);
 
-				// getMode: 420 (644), 493 (755), 509 (775), 511 (link 775)
-				//Log.v(TAG, "File mode is " + e.getMode());
+				allInstalledFiles.add(fullName);
+				allInstalledFileModes.put(fullName, e.getMode());
+				allInstalledFileTypes.put(fullName, "d");
+			} else if (!"".equals(e.getLinkName())) {
+				Log.v(TAG, "LINK: " + fullName + " -> " + e.getLinkName());
+				Runtime.getRuntime().exec(new String[] { "ln", "-s", fullName, e.getLinkName() });
+				installedfiles.add(fullName);
 
-				//TODO: Set to actual tar perms.
-				Runtime.getRuntime().exec("chmod 755 " + fullName);
-
-				// This tells the ui how much progress has been made
-				files++;
-				Message progress = new Message();
-				progress.arg1 = (int) ++filesUnpacked;
-				progress.arg2 = (int) filesInArchive;
-				progress.what = CouchService.DOWNLOAD;
-				handler.sendMessage(progress);
-			}
-
-			tarstream.close();
-			instream.close();
-
-			FileWriter iLOWriter = new FileWriter(externalPath() + "/" + pkg + ".installedfiles");
-			for (String file : installedfiles) {
-				iLOWriter.write(file+"\n");
-			}
-			iLOWriter.close();
-			for (String file : installedfiles) {
-				if(file.endsWith(".postinst.sh")) {
-					Runtime.getRuntime().exec("sh " + file);
+				allInstalledFiles.add(fullName);
+				allInstalledLinks.put(fullName, e.getLinkName());
+				allInstalledFileModes.put(fullName, e.getMode());
+				allInstalledFileTypes.put(fullName, "l");
+			} else {
+				File target = new File(fullName);
+				if(target.getParent() != null) {
+					new File(target.getParent()).mkdirs();
 				}
+				Log.v(TAG, "Extracting " + fullName);
+				IOUtils.copy(tarstream, new FileOutputStream(target));
+				installedfiles.add(fullName);
+
+				allInstalledFiles.add(fullName);
+				allInstalledFileModes.put(fullName, e.getMode());
+				allInstalledFileTypes.put(fullName, "f");
 			}
 
-			// Write out full list of all installed files + file modes
-			iLOWriter = new FileWriter(indexFile());
+			// getMode: 420 (644), 493 (755), 509 (775), 511 (link 775)
+			//Log.v(TAG, "File mode is " + e.getMode());
 
-			for (String file : allInstalledFiles) {
-			    iLOWriter.write(
-			            allInstalledFileTypes.get(file).toString() + " " +
-			            allInstalledFileModes.get(file).toString() + " " +
-			            file + " " +
-			            allInstalledLinks.get(file) + "\n");
-			}
+			//TODO: Set to actual tar perms.
+			Runtime.getRuntime().exec("chmod 755 " + fullName);
 
-			iLOWriter.close();
-
-            String[][] replacements = new String[][]{
-            	{"%app_name%", CouchInstaller.appNamespace},
-            	{"%sdk_int%", Integer.toString(android.os.Build.VERSION.SDK_INT)}
-            };
-
-            replace(CouchInstaller.erlangPath() + "/erts-5.7.5/bin/start", replacements);
-            replace(CouchInstaller.erlangPath() + "/erts-5.7.5/bin/erl", replacements);
-            replace(CouchInstaller.erlangPath() + "/bin/start", replacements);
-            replace(CouchInstaller.erlangPath() + "/bin/erl", replacements);
-            replace(CouchInstaller.couchPath() + "/etc/init.d/couchdb", replacements);
-            replace(CouchInstaller.couchPath() + "/etc/logrotate.d/couchdb", replacements);
-            replace(CouchInstaller.couchPath() + "/lib/couchdb/erlang/lib/couch-1.0.2/ebin/couch.app", replacements);
-            replace(CouchInstaller.couchPath() + "/lib/couchdb/erlang/lib/couch-1.0.2/priv/lib/couch_icu_driver.la", replacements);
-            replace(CouchInstaller.couchPath() + "/bin/couchdb", replacements);
-            replace(CouchInstaller.couchPath() + "/bin/couchjs", replacements);
-            replace(CouchInstaller.couchPath() + "/bin/couchjs_wrapper", replacements);
-            replace(CouchInstaller.couchPath() + "/etc/couchdb/local.ini", replacements);
-
-		} else {
-			throw new IOException();
+			// This tells the ui how much progress has been made
+			files++;
+			Message progress = new Message();
+			progress.arg1 = (int) ++filesUnpacked;
+			progress.arg2 = (int) filesInArchive;
+			progress.what = CouchService.DOWNLOAD;
+			handler.sendMessage(progress);
 		}
+
+		tarstream.close();
+		instream.close();
+
+		FileWriter iLOWriter = new FileWriter(externalPath() + "/" + pkg + ".installedfiles");
+		for (String file : installedfiles) {
+			iLOWriter.write(file+"\n");
+		}
+		iLOWriter.close();
+		for (String file : installedfiles) {
+			if(file.endsWith(".postinst.sh")) {
+				Runtime.getRuntime().exec("sh " + file);
+			}
+		}
+
+		// Write out full list of all installed files + file modes
+		iLOWriter = new FileWriter(indexFile());
+
+		for (String file : allInstalledFiles) {
+			iLOWriter.write(
+					allInstalledFileTypes.get(file).toString() + " " +
+							allInstalledFileModes.get(file).toString() + " " +
+							file + " " +
+							allInstalledLinks.get(file) + "\n");
+		}
+
+		iLOWriter.close();
+
+		String[][] replacements = new String[][]{
+				{"%app_name%", CouchInstaller.appNamespace},
+				{"%sdk_int%", Integer.toString(android.os.Build.VERSION.SDK_INT)}
+		};
+
+		replace(CouchInstaller.erlangPath() + "/erts-5.7.5/bin/start", replacements);
+		replace(CouchInstaller.erlangPath() + "/erts-5.7.5/bin/erl", replacements);
+		replace(CouchInstaller.erlangPath() + "/bin/start", replacements);
+		replace(CouchInstaller.erlangPath() + "/bin/erl", replacements);
+		replace(CouchInstaller.couchPath() + "/etc/init.d/couchdb", replacements);
+		replace(CouchInstaller.couchPath() + "/etc/logrotate.d/couchdb", replacements);
+		replace(CouchInstaller.couchPath() + "/lib/couchdb/erlang/lib/couch-1.0.2/ebin/couch.app", replacements);
+		replace(CouchInstaller.couchPath() + "/lib/couchdb/erlang/lib/couch-1.0.2/priv/lib/couch_icu_driver.la", replacements);
+		replace(CouchInstaller.couchPath() + "/bin/couchdb", replacements);
+		replace(CouchInstaller.couchPath() + "/bin/couchjs", replacements);
+		replace(CouchInstaller.couchPath() + "/bin/couchjs_wrapper", replacements);
+		replace(CouchInstaller.couchPath() + "/etc/couchdb/local.ini", replacements);
 	}
 
 	/*

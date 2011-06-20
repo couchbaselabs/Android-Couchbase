@@ -133,11 +133,12 @@ public class CouchService extends Service {
 
 	void installCouch(final String url, final String pkg) {
 		status = INSTALLING;
+		final CouchService service = this;
 		new Thread() {
 			@Override
 			public void run() {
 				try {
-					CouchInstaller.doInstall(url, pkg, mHandler);
+					CouchInstaller.doInstall(url, pkg, mHandler, service);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
