@@ -34,7 +34,7 @@ public class CouchInstaller {
 	final static String TAG = "CouchDB";
 
 	public static String dataPath() {
-		return "/data/data/" + appNamespace;
+		return "/data/data/" + appNamespace + "/cache";
 	}
 	public static String externalPath() {
 		return Environment.getExternalStorageDirectory() + "/Android/data/" + appNamespace;
@@ -87,7 +87,7 @@ public class CouchInstaller {
 		Map<String, String> allInstalledLinks = new HashMap<String, String>();
 
 		InputStream instream = null;
-		
+
 		// If no URL is provided, load tarball from assets.
 		if (baseUrl == null) {
 			// XXX Stupid android 2.1 bug
@@ -96,14 +96,14 @@ public class CouchInstaller {
 			// XXX Certain files are NOT auto compressed (eg. jpg).
 			instream = service.getAssets().open(pkg + ".tgz" + ".jpg");
 		}
-		
+
 		else {
 			HttpClient pkgHttpClient = new DefaultHttpClient();
 			HttpGet tgzrequest = new HttpGet(baseUrl + pkg + ".tgz");
 			HttpResponse response = pkgHttpClient.execute(tgzrequest);
 			StatusLine status = response.getStatusLine();
 			Log.d(TAG, "Request returned status " + status);
-			
+
 			if (status.getStatusCode() == 200) {
 				HttpEntity entity = response.getEntity();
 				instream = entity.getContent();
@@ -113,7 +113,7 @@ public class CouchInstaller {
 				throw new IOException();
 			}
 		}
-		
+
 		// Ensure /sdcard/Android/data/com.my.app exists
 		File externalPath = new File(externalPath() + "/");
 		if (!externalPath.exists()) {
