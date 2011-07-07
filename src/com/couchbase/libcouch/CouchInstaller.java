@@ -34,7 +34,7 @@ public class CouchInstaller {
 	final static String TAG = "CouchDB";
 
 	public static String dataPath() {
-		return "/data/data/" + appNamespace + "/cache";
+		return "/data/data/" + appNamespace;
 	}
 	public static String externalPath() {
 		return Environment.getExternalStorageDirectory() + "/Android/data/" + appNamespace;
@@ -46,17 +46,28 @@ public class CouchInstaller {
 	public static void doInstall(String url, String pkg, Handler handler, CouchService service)
 		throws IOException {
 
-		// WARNING: This deleted any previously installed couchdb data
-		// and binaries stored on the sdcard to keep in line with usual
-		// android app behaviour. However there doesnt look to be a way to protect
-		// ourselves from wiping the entire sdcard with a typo, so just be
-		// careful
-		File couchDir = new File(dataPath() + "/couchdb");
-		if (couchDir.exists()) {
-			deleteDirectory(couchDir);
-		}
+		if(!checkInstalled(pkg)) {
+		    /*
+	         * WARNING: the following two stanzas delete any previously installed 
+	         * CouchDB and Erlang binaries stored in the app data space.  It isn't
+	         * usually possible (in a non-rooted or emulated environment) to hurt
+	         * other data directories but one must be especially careful when carrying
+	         * out this sort of operation on external storage where there are no ways
+	         * of protecting ourselves from wiping the entire SD card with a typo. 
+	         */
+		    
+		    File couchDir = new File(dataPath() + "/couchdb");
+		    
+		    if (couchDir.exists()) {
+		        deleteDirectory(couchDir);
+		    }
 
-		if(!(new File(dataPath() + "/" + pkg + ".installedfiles")).exists()) {
+		    File erlangDir = new File(dataPath() + "/erlang");
+		    
+		    if (erlangDir.exists()) {
+		        deleteDirectory(erlangDir);
+		    }
+		    
 			installPackage(url, pkg, handler, service);
 		}
 
@@ -189,7 +200,10 @@ public class CouchInstaller {
 		}
 		iLOWriter.close();
 
-		// Write out full list of all installed files + file modes
+		/*
+		 * Write out full list of all installed files + file modes (the data in this file
+		 * only represents the most recently installed release)
+		 */
 		iLOWriter = new FileWriter(indexFile());
 
 		for (String file : allInstalledFiles) {
@@ -220,8 +234,8 @@ public class CouchInstaller {
 	}
 
 	/*
-	 * Verifies that CouchDB is installed by checking the package files we
-	 * write on installation + the data directory on the sd card
+	 * Verifies that requested version of CouchDB is installed by checking for the presence of
+	 * the package files we write upon installation in the data directory of the app.
 	 */
 	public static boolean checkInstalled(String pkg) {
 
@@ -230,7 +244,7 @@ public class CouchInstaller {
 			return false;
 		}
 
-		return true;//new File(couchPath()).exists();
+		return true;
 	}
 
 	/*
