@@ -48,26 +48,26 @@ public class CouchInstaller {
 
 		if(!checkInstalled(pkg)) {
 		    /*
-	         * WARNING: the following two stanzas delete any previously installed 
+	         * WARNING: the following two stanzas delete any previously installed
 	         * CouchDB and Erlang binaries stored in the app data space.  It isn't
 	         * usually possible (in a non-rooted or emulated environment) to hurt
 	         * other data directories but one must be especially careful when carrying
 	         * out this sort of operation on external storage where there are no ways
-	         * of protecting ourselves from wiping the entire SD card with a typo. 
+	         * of protecting ourselves from wiping the entire SD card with a typo.
 	         */
-		    
+
 		    File couchDir = new File(dataPath() + "/couchdb");
-		    
+
 		    if (couchDir.exists()) {
 		        deleteDirectory(couchDir);
 		    }
 
 		    File erlangDir = new File(dataPath() + "/erlang");
-		    
+
 		    if (erlangDir.exists()) {
 		        deleteDirectory(erlangDir);
 		    }
-		    
+
 			installPackage(url, pkg, handler, service);
 		}
 
@@ -279,7 +279,7 @@ public class CouchInstaller {
         	FileWriter writer = new FileWriter(fileName);
         	writer.write(content);
         	writer.close();
-        	Runtime.getRuntime().exec("/system/bin/chmod 755 " + fileName);
+        	Runtime.getRuntime().exec("chmod 755 " + fileName);
         } catch (IOException e) {
         	e.printStackTrace();
         }
