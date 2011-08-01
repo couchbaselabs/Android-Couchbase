@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-      package="com.couchone.libcouch"
+      package="com.couchbase.libcouch"
       android:versionCode="1"
       android:versionName="1.0">
     <application android:icon="@drawable/icon" android:label="@string/app_name">
         <service android:name="com.couchbase.libcouch.CouchService" android:enabled="true" android:process=":remote">
             <intent-filter>
-                <action android:name="com.couchone.libcouch.ICouchService"></action>
+                <action android:name="com.couchbase.libcouch.ICouchService"></action>
             </intent-filter>
         </service>
 
