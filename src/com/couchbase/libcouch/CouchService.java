@@ -18,11 +18,8 @@ public class CouchService extends Service {
 	public final static int ERROR = 0;
 	public final static int PROGRESS = 1;
 	public final static int COMPLETE = 2;
-	public final static int DOWNLOAD = 7;
-	public final static int COUCH_STARTED = 5;
-
-	public final static int INSTALLING = 3;
-	public final static int INITIALIZING = 4;
+	public final static int COUCH_STARTED = 3;
+	public final static int INSTALLING = 4;
 
 	private ICouchClient client;
 
