@@ -15,13 +15,6 @@ import java.util.zip.GZIPInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.utils.IOUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.StatusLine;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
@@ -43,7 +36,7 @@ public class CouchInstaller {
 		return dataPath() + "/installedfiles.index";
 	}
 
-	public static void doInstall(String url, String pkg, Handler handler, CouchService service)
+	public static void doInstall(String pkg, Handler handler, CouchService service)
 		throws IOException {
 
 		if(!checkInstalled(pkg)) {
@@ -68,7 +61,7 @@ public class CouchInstaller {
 		        deleteDirectory(erlangDir);
 		    }
 
-			installPackage(url, pkg, handler, service);
+			installPackage(pkg, handler, service);
 		}
 
 		Message done = Message.obtain();
@@ -79,7 +72,7 @@ public class CouchInstaller {
 	/*
 	 * This fetches a given package from amazon and tarbombs it to the filsystem
 	 */
-	private static void installPackage(String baseUrl, String pkg, Handler handler, CouchService service)
+	private static void installPackage(String pkg, Handler handler, CouchService service)
 			throws IOException {
 
 		Log.v(TAG, "Installing " + pkg);
@@ -91,33 +84,11 @@ public class CouchInstaller {
 		Map<String, String> allInstalledFileTypes = new HashMap<String, String>();
 		Map<String, String> allInstalledLinks = new HashMap<String, String>();
 
-		InputStream instream = null;
-
-		// If no URL is provided, load tarball from assets.
-		if (baseUrl == null) {
-			// XXX Stupid android 2.1 bug
-			// XXX Cannot load compressed assets >1M and
-			// XXX most files are automatically compressed,
-			// XXX Certain files are NOT auto compressed (eg. jpg).
-			instream = service.getAssets().open(pkg + ".tgz" + ".jpg");
-		}
-
-		else {
-			HttpClient pkgHttpClient = new DefaultHttpClient();
-			HttpGet tgzrequest = new HttpGet(baseUrl + pkg + ".tgz");
-			HttpResponse response = pkgHttpClient.execute(tgzrequest);
-			StatusLine status = response.getStatusLine();
-			Log.d(TAG, "Request returned status " + status);
-
-			if (status.getStatusCode() == 200) {
-				HttpEntity entity = response.getEntity();
-				instream = entity.getContent();
-			}
-
-			else {
-				throw new IOException();
-			}
-		}
+		// XXX Stupid android 2.1 bug
+		// XXX Cannot load compressed assets >1M and
+		// XXX most files are automatically compressed,
+		// XXX Certain files are NOT auto compressed (eg. jpg).
+		InputStream instream = service.getAssets().open(pkg + ".tgz" + ".jpg");
 
 		// Ensure /sdcard/Android/data/com.my.app/db exists
 		File externalPath = new File(externalPath() + "/db/");
@@ -129,7 +100,6 @@ public class CouchInstaller {
 				new GZIPInputStream(instream));
 		TarArchiveEntry e = null;
 
-		int files = 0;
 		float filesInArchive = 0;
 		float filesUnpacked = 0;
 
@@ -183,7 +153,6 @@ public class CouchInstaller {
 			Runtime.getRuntime().exec("chmod 755 " + fullName);
 
 			// This tells the ui how much progress has been made
-			files++;
 			Message progress = new Message();
 			progress.arg1 = (int) ++filesUnpacked;
 			progress.arg2 = (int) filesInArchive;

@@ -90,10 +90,10 @@ public class CouchService extends Service {
 	public class CouchServiceImpl extends ICouchService.Stub {
 
 		@Override
-		public void initCouchDB(ICouchClient cb, final String url, final String pkg) throws RemoteException {
+		public void initCouchDB(ICouchClient cb, final String pkg) throws RemoteException {
 			client = cb;
 			if (!CouchInstaller.checkInstalled(pkg)) {
-				installCouch(url, pkg);
+				installCouch(pkg);
 			} else {
 				if (couch.started == true) {
 					couchStarted();
@@ -121,13 +121,13 @@ public class CouchService extends Service {
 		couch.start("/system/bin/sh", CouchInstaller.dataPath() + "/couchdb/bin/couchdb", "", mHandler);
 	}
 
-	void installCouch(final String url, final String pkg) {
+	void installCouch(final String pkg) {
 		final CouchService service = this;
 		new Thread() {
 			@Override
 			public void run() {
 				try {
-					CouchInstaller.doInstall(url, pkg, mHandler, service);
+					CouchInstaller.doInstall(pkg, mHandler, service);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}

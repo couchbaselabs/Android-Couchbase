@@ -9,7 +9,6 @@ import android.os.RemoteException;
 
 public class CouchDB {
 
-	private static String releaseUrl;
 	private static String releaseName;
 
 	private static ICouchService couchService;
@@ -23,7 +22,7 @@ public class CouchDB {
 		public void onServiceConnected(ComponentName className, final IBinder service) {
 			try {
 				couchService = ICouchService.Stub.asInterface(service);
-				couchService.initCouchDB(couchClient, releaseUrl, releaseName);
+				couchService.initCouchDB(couchClient, releaseName);
 			} catch (RemoteException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -36,8 +35,7 @@ public class CouchDB {
 		}
 	};
 
-	public static ServiceConnection getService(Context ctx, String url, String release, ICouchClient client) {
-		releaseUrl = url;
+	public static ServiceConnection getService(Context ctx, String release, ICouchClient client) {
 		releaseName = release;
 		couchClient = client;
 		ctx.bindService(new Intent(ctx, CouchService.class), mConnection, Context.BIND_AUTO_CREATE);
