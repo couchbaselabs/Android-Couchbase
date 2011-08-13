@@ -194,8 +194,8 @@ public class CouchInstaller {
 		replace(CouchInstaller.dataPath() + "/erlang/erts-5.7.5/bin/erl", replacements);
 		replace(CouchInstaller.dataPath() + "/erlang/bin/start", replacements);
 		replace(CouchInstaller.dataPath() + "/erlang/bin/erl", replacements);
-		replace(CouchInstaller.dataPath() + "/couchdb/lib/couchdb/erlang/lib/couch-1.2.0a-af6e942-git/ebin/couch.app", replacements);
-		replace(CouchInstaller.dataPath() + "/couchdb/lib/couchdb/erlang/lib/couch-1.2.0a-af6e942-git/priv/lib/couch_icu_driver.la", replacements);
+		replace(CouchInstaller.dataPath() + "/couchdb/lib/couchdb/erlang/lib/couch/ebin/couch.app", replacements);
+		replace(CouchInstaller.dataPath() + "/couchdb/lib/couchdb/erlang/lib/couch/priv/lib/couch_icu_driver.la", replacements);
 		replace(CouchInstaller.dataPath() + "/couchdb/bin/couchdb", replacements);
 		replace(CouchInstaller.dataPath() + "/couchdb/bin/couchjs", replacements);
 		replace(CouchInstaller.dataPath() + "/couchdb/bin/couchjs_wrapper", replacements);
