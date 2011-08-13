@@ -1,5 +1,7 @@
 package com.couchbase.libcouch;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URL;
@@ -125,7 +127,10 @@ public class CouchService extends Service {
 			public void run() {
 				try {
 					CouchInstaller.doInstall(pkg, mHandler, service);
-				} catch (Exception e) {
+				} catch (FileNotFoundException e) {
+					Message.obtain(mHandler, CouchService.ERROR, e).sendToTarget();
+					e.printStackTrace();
+				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			}

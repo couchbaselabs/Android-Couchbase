@@ -9,6 +9,7 @@ import android.os.RemoteException;
 
 public class CouchDB {
 
+	private final static String defaultRelease = "couchbase-1.0-dp-be9fe2f";
 	private static String releaseName;
 
 	private static ICouchService couchService;
@@ -35,11 +36,14 @@ public class CouchDB {
 		}
 	};
 
+	public static ServiceConnection getService(Context ctx, ICouchClient client) {
+		return getService(ctx, defaultRelease, client);
+	}
+
 	public static ServiceConnection getService(Context ctx, String release, ICouchClient client) {
 		releaseName = release;
 		couchClient = client;
 		ctx.bindService(new Intent(ctx, CouchService.class), mConnection, Context.BIND_AUTO_CREATE);
 		return mConnection;
 	}
-
 }
