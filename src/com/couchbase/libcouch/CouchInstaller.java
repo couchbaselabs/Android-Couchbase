@@ -15,25 +15,16 @@ import java.util.zip.GZIPInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.utils.IOUtils;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
 public class CouchInstaller {
 
-	public static String appNamespace;
-
 	final static String TAG = "CouchDB";
 
-	public static String dataPath() {
-		return "/data/data/" + appNamespace;
-	}
-	public static String externalPath() {
-		return Environment.getExternalStorageDirectory() + "/Android/data/" + appNamespace;
-	}
 	public static String indexFile() {
-		return dataPath() + "/installedfiles.index";
+		return CouchbaseEmbeddedServer.dataPath() + "/installedfiles.index";
 	}
 
 	public static void doInstall(String pkg, Handler handler, CouchService service)
@@ -49,13 +40,13 @@ public class CouchInstaller {
 	         * of protecting ourselves from wiping the entire SD card with a typo.
 	         */
 
-		    File couchDir = new File(dataPath() + "/couchdb");
+		    File couchDir = new File(CouchbaseEmbeddedServer.dataPath() + "/couchdb");
 
 		    if (couchDir.exists()) {
 		        deleteDirectory(couchDir);
 		    }
 
-		    File erlangDir = new File(dataPath() + "/erlang");
+		    File erlangDir = new File(CouchbaseEmbeddedServer.dataPath() + "/erlang");
 
 		    if (erlangDir.exists()) {
 		        deleteDirectory(erlangDir);
@@ -91,7 +82,7 @@ public class CouchInstaller {
 		InputStream instream = service.getAssets().open(pkg + ".tgz" + ".jpg");
 
 		// Ensure /sdcard/Android/data/com.my.app/db exists
-		File externalPath = new File(externalPath() + "/db/");
+		File externalPath = new File(CouchbaseEmbeddedServer.externalPath() + "/db/");
 		if (!externalPath.exists()) {
 			externalPath.mkdirs();
 		}
@@ -105,7 +96,7 @@ public class CouchInstaller {
 
 		while ((e = tarstream.getNextTarEntry()) != null) {
 
-			String fullName = dataPath() + "/" + e.getName();
+			String fullName = CouchbaseEmbeddedServer.dataPath() + "/" + e.getName();
 			// Obtain count of files in this archive so that we can indicate install progress
 			if (filesInArchive == 0 && e.getName().startsWith("filecount")) {
 				String[] count = e.getName().split("\\.");
@@ -163,7 +154,7 @@ public class CouchInstaller {
 		tarstream.close();
 		instream.close();
 
-		FileWriter iLOWriter = new FileWriter(dataPath() + "/" + pkg + ".installedfiles");
+		FileWriter iLOWriter = new FileWriter(CouchbaseEmbeddedServer.dataPath() + "/" + pkg + ".installedfiles");
 		for (String file : installedfiles) {
 			iLOWriter.write(file+"\n");
 		}
@@ -186,21 +177,21 @@ public class CouchInstaller {
 		iLOWriter.close();
 
 		String[][] replacements = new String[][]{
-				{"%app_name%", CouchInstaller.appNamespace},
+				{"%app_name%", CouchbaseEmbeddedServer.appNamespace},
 				{"%sdk_int%", Integer.toString(android.os.Build.VERSION.SDK_INT)}
 		};
 
-		replace(CouchInstaller.dataPath() + "/erlang/erts-5.7.5/bin/start", replacements);
-		replace(CouchInstaller.dataPath() + "/erlang/erts-5.7.5/bin/erl", replacements);
-		replace(CouchInstaller.dataPath() + "/erlang/bin/start", replacements);
-		replace(CouchInstaller.dataPath() + "/erlang/bin/erl", replacements);
-		replace(CouchInstaller.dataPath() + "/couchdb/lib/couchdb/erlang/lib/couch/ebin/couch.app", replacements);
-		replace(CouchInstaller.dataPath() + "/couchdb/lib/couchdb/erlang/lib/couch/priv/lib/couch_icu_driver.la", replacements);
-		replace(CouchInstaller.dataPath() + "/couchdb/bin/couchdb", replacements);
-		replace(CouchInstaller.dataPath() + "/couchdb/bin/couchjs", replacements);
-		replace(CouchInstaller.dataPath() + "/couchdb/bin/couchjs_wrapper", replacements);
-		replace(CouchInstaller.dataPath() + "/couchdb/etc/couchdb/default.ini", replacements);
-		replace(CouchInstaller.dataPath() + "/couchdb/etc/couchdb/default.d/android.default.ini", replacements);
+		replace(CouchbaseEmbeddedServer.dataPath() + "/erlang/erts-5.7.5/bin/start", replacements);
+		replace(CouchbaseEmbeddedServer.dataPath() + "/erlang/erts-5.7.5/bin/erl", replacements);
+		replace(CouchbaseEmbeddedServer.dataPath() + "/erlang/bin/start", replacements);
+		replace(CouchbaseEmbeddedServer.dataPath() + "/erlang/bin/erl", replacements);
+		replace(CouchbaseEmbeddedServer.dataPath() + "/couchdb/lib/couchdb/erlang/lib/couch/ebin/couch.app", replacements);
+		replace(CouchbaseEmbeddedServer.dataPath() + "/couchdb/lib/couchdb/erlang/lib/couch/priv/lib/couch_icu_driver.la", replacements);
+		replace(CouchbaseEmbeddedServer.dataPath() + "/couchdb/bin/couchdb", replacements);
+		replace(CouchbaseEmbeddedServer.dataPath() + "/couchdb/bin/couchjs", replacements);
+		replace(CouchbaseEmbeddedServer.dataPath() + "/couchdb/bin/couchjs_wrapper", replacements);
+		replace(CouchbaseEmbeddedServer.dataPath() + "/couchdb/etc/couchdb/default.ini", replacements);
+		replace(CouchbaseEmbeddedServer.dataPath() + "/couchdb/etc/couchdb/default.d/android.default.ini", replacements);
 	}
 
 	/*
@@ -209,7 +200,7 @@ public class CouchInstaller {
 	 */
 	public static boolean checkInstalled(String pkg) {
 
-		File file = new File(dataPath() + "/" + pkg + ".installedfiles");
+		File file = new File(CouchbaseEmbeddedServer.dataPath() + "/" + pkg + ".installedfiles");
 		if (!file.exists()) {
 			return false;
 		}

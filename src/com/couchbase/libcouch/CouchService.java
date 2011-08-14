@@ -61,7 +61,6 @@ public class CouchService extends Service {
 	 */
 	@Override
 	public void onCreate() {
-		CouchInstaller.appNamespace = this.getApplication().getPackageName();
 		couch.service = this;
 	}
 
@@ -117,7 +116,7 @@ public class CouchService extends Service {
 	}
 
 	void startCouch() {
-		couch.start("/system/bin/sh", CouchInstaller.dataPath() + "/couchdb/bin/couchdb", "", mHandler);
+		couch.start("/system/bin/sh", CouchbaseEmbeddedServer.dataPath() + "/couchdb/bin/couchdb", "", mHandler);
 	}
 
 	void installCouch(final String pkg) {
