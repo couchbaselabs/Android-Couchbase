@@ -36,7 +36,7 @@ public class CouchbaseEmbeddedServer {
 	 * recommended to use this default package name as it ensures this library
 	 * was built to support these binaries
 	 */
-	private final static String defaultRelease = "couchbase-1.0-dp-be9fe2f";
+	private final static String defaultRelease = "couchbase-test-60d0c5d";
 
 	private static ICouchService couchService;
 	private static ICouchClient couchClient;
@@ -89,10 +89,13 @@ public class CouchbaseEmbeddedServer {
 	public void installDatabase(String fileName) throws IOException {
 		File db = new File(externalPath() + "/db/" + fileName);
 		if (!db.exists()) {
+			
+			// Ensure db directory exists
+			(new File(externalPath() + "/db/")).mkdirs();
+			
 			AssetManager assetManager = ctx.getAssets();
 			InputStream in = assetManager.open(fileName);
 			OutputStream out = new FileOutputStream(db);
-
 			byte[] buffer = new byte[1024];
 			int read;
 			while((read = in.read(buffer)) != -1){
@@ -111,9 +114,8 @@ public class CouchbaseEmbeddedServer {
 		public void onServiceConnected(ComponentName className, final IBinder service) {
 			try {
 				couchService = ICouchService.Stub.asInterface(service);
-				couchService.initCouchDB(couchClient, releaseName);
+				couchService.startCouchbase(couchClient, releaseName);
 			} catch (RemoteException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}

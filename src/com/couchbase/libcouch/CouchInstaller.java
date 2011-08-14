@@ -21,8 +21,6 @@ import android.util.Log;
 
 public class CouchInstaller {
 
-	final static String TAG = "CouchDB";
-
 	public static String indexFile() {
 		return CouchbaseEmbeddedServer.dataPath() + "/installedfiles.index";
 	}
@@ -66,7 +64,7 @@ public class CouchInstaller {
 	private static void installPackage(String pkg, Handler handler, CouchService service)
 			throws IOException {
 
-		Log.v(TAG, "Installing " + pkg);
+		Log.v(CouchbaseEmbeddedServer.TAG, "Installing " + pkg);
 
 		// Later used initialization of /data/data/...
 		ArrayList<String> installedfiles = new ArrayList<String>();
@@ -109,13 +107,13 @@ public class CouchInstaller {
 				if (!f.exists() && !new File(fullName).mkdirs()) {
 					throw new IOException("Unable to create directory: " + fullName);
 				}
-				Log.v(TAG, "MKDIR: " + fullName);
+				Log.v(CouchbaseEmbeddedServer.TAG, "MKDIR: " + fullName);
 
 				allInstalledFiles.add(fullName);
 				allInstalledFileModes.put(fullName, e.getMode());
 				allInstalledFileTypes.put(fullName, "d");
 			} else if (!"".equals(e.getLinkName())) {
-				Log.v(TAG, "LINK: " + fullName + " -> " + e.getLinkName());
+				Log.v(CouchbaseEmbeddedServer.TAG, "LINK: " + fullName + " -> " + e.getLinkName());
 				Runtime.getRuntime().exec(new String[] { "ln", "-s", fullName, e.getLinkName() });
 				installedfiles.add(fullName);
 
@@ -128,7 +126,7 @@ public class CouchInstaller {
 				if(target.getParent() != null) {
 					new File(target.getParent()).mkdirs();
 				}
-				Log.v(TAG, "Extracting " + fullName);
+				Log.v(CouchbaseEmbeddedServer.TAG, "Extracting " + fullName);
 				IOUtils.copy(tarstream, new FileOutputStream(target));
 				installedfiles.add(fullName);
 
