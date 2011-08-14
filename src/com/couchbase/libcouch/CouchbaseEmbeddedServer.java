@@ -1,9 +1,16 @@
 package com.couchbase.libcouch;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.res.AssetManager;
 import android.os.Environment;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -71,6 +78,29 @@ public class CouchbaseEmbeddedServer {
 		releaseName = release;		
 		ctx.bindService(new Intent(ctx, CouchService.class), mConnection, Context.BIND_AUTO_CREATE);
 		return mConnection;
+	}
+
+	/*
+	 * This will copy a database from the assets folder into the
+	 * couch database directory
+	 * NOTE: Databases that use snappy encoding will not currently
+	 * be able to be opened
+	 */
+	public void installDatabase(String fileName) throws IOException {
+		File db = new File(externalPath() + "/db/" + fileName);
+		if (!db.exists()) {
+			AssetManager assetManager = ctx.getAssets();
+			InputStream in = assetManager.open(fileName);
+			OutputStream out = new FileOutputStream(db);
+
+			byte[] buffer = new byte[1024];
+			int read;
+			while((read = in.read(buffer)) != -1){
+				out.write(buffer, 0, read);
+			}
+			in.close();
+			out.close();
+		}
 	}
 
 	/*
