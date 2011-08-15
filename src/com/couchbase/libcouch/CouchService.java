@@ -12,10 +12,11 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import com.google.ase.Exec;
 
 import android.app.Service;
 import android.content.Intent;
@@ -25,9 +26,11 @@ import android.os.Message;
 import android.os.RemoteException;
 import android.util.Log;
 
+import com.google.ase.Exec;
+
 public class CouchService extends Service {
 
-	/* 
+	/*
 	 * Contants used to communnicate between the Couch Service
 	 * and this thread
 	 */
@@ -36,7 +39,7 @@ public class CouchService extends Service {
 	public final static int COMPLETE = 2;
 	public final static int COUCH_STARTED = 3;
 	public final static int INSTALLING = 4;
-	
+
 	/* The url Couch has started on */
 	public URL url;
 
@@ -50,7 +53,7 @@ public class CouchService extends Service {
 	private PrintStream out;
 	private BufferedReader in;
 
-	/* 
+	/*
 	 * Couch runs in a seperate thread, have the communication run
 	 * through our own handler so the app doesnt need to create a new
 	 * handler to deal with touching the UI from a different thread
@@ -157,12 +160,33 @@ public class CouchService extends Service {
 
 	/* Start the couch process, run in a seperate thread */
 	void startCouch() {
-		
+
+		String path = CouchbaseEmbeddedServer.dataPath();
+
+		String cmd = path + "/couchdb/bin/couchdb_wrapper";
+
+		String[] plainArgs = {
+				"+Bd", "-noinput", "sasl", "errlog_type", "all", "+K", "true",
+				"-env", "ERL_LIBS", path + "/couchdb/lib/couchdb/erlang/lib", "-couch_ini",
+				path + "/couchdb/etc/couchdb/default.ini",
+				path + "/couchdb/etc/couchdb/local.ini",
+				path + "/couchdb/etc/couchdb/android.default.ini"};
+
+		ArrayList<String> args = new ArrayList<String>(Arrays.asList(plainArgs));
+		for (String iniPath : CouchbaseEmbeddedServer.customIniFiles) {
+			args.add(iniPath);
+		}
+
+		args.add(path + "/couchdb/etc/couchdb/overrides.ini -s couch");
+
 		String shell = "/system/bin/sh";
-		String couchbin = CouchbaseEmbeddedServer.dataPath() + "/couchdb/bin/couchdb";
-		
+		String couchbin = join(args, " ");
+
+		Log.v(CouchbaseEmbeddedServer.TAG, "couchbin");
+		Log.v(CouchbaseEmbeddedServer.TAG, couchbin);
+
 		int[] pidbuffer = new int[1];
-		final FileDescriptor fd = Exec.createSubprocess(shell, couchbin, "", pidbuffer);
+		final FileDescriptor fd = Exec.createSubprocess(shell, cmd, couchbin, pidbuffer);
 		pid = pidbuffer[0];
 		out = new PrintStream(new FileOutputStream(fd), true);
 		in = new BufferedReader(new InputStreamReader(new FileInputStream(fd)));
@@ -210,4 +234,17 @@ public class CouchService extends Service {
 		}
 		return links;
 	}
+
+	public static String join(Collection<String> s, String delimiter) {
+		StringBuffer buffer = new StringBuffer();
+		Iterator<String> iter = s.iterator();
+		while (iter.hasNext()) {
+			buffer.append(iter.next());
+			if (iter.hasNext()) {
+				buffer.append(delimiter);
+			}
+		}
+		return buffer.toString();
+	}
+
 }

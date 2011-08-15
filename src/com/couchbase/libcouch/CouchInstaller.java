@@ -185,11 +185,11 @@ public class CouchInstaller {
 		replace(CouchbaseEmbeddedServer.dataPath() + "/erlang/bin/erl", replacements);
 		replace(CouchbaseEmbeddedServer.dataPath() + "/couchdb/lib/couchdb/erlang/lib/couch/ebin/couch.app", replacements);
 		replace(CouchbaseEmbeddedServer.dataPath() + "/couchdb/lib/couchdb/erlang/lib/couch/priv/lib/couch_icu_driver.la", replacements);
-		replace(CouchbaseEmbeddedServer.dataPath() + "/couchdb/bin/couchdb", replacements);
 		replace(CouchbaseEmbeddedServer.dataPath() + "/couchdb/bin/couchjs", replacements);
 		replace(CouchbaseEmbeddedServer.dataPath() + "/couchdb/bin/couchjs_wrapper", replacements);
+		replace(CouchbaseEmbeddedServer.dataPath() + "/couchdb/bin/couchdb_wrapper", replacements);
 		replace(CouchbaseEmbeddedServer.dataPath() + "/couchdb/etc/couchdb/default.ini", replacements);
-		replace(CouchbaseEmbeddedServer.dataPath() + "/couchdb/etc/couchdb/default.d/android.default.ini", replacements);
+		replace(CouchbaseEmbeddedServer.dataPath() + "/couchdb/etc/couchdb/android.default.ini", replacements);
 	}
 
 	/*

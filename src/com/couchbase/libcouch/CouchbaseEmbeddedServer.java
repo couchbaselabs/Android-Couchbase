@@ -1,10 +1,12 @@
 package com.couchbase.libcouch;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -27,32 +29,37 @@ public class CouchbaseEmbeddedServer {
 
 	/* The application name (eg: com.dale.fubar) */
 	public static String appNamespace;
-	
+
 	/* The name of the binary package of Couchbase stored in assets */
 	private static String releaseName;
 
-	/* 
-	 * The default package name of couchdb binaries, applications are 
+	/*
+	 * The default package name of couchdb binaries, applications are
 	 * recommended to use this default package name as it ensures this library
 	 * was built to support these binaries
 	 */
-	private final static String defaultRelease = "couchbase-test-60d0c5d";
+	private final static String defaultRelease = "couchbase-1.0-dp-3ecef7a";
+
+	/*
+	 * List of user defined ini files
+	 */
+	public static ArrayList<String> customIniFiles = new ArrayList<String>();
 
 	private static ICouchService couchService;
 	private static ICouchClient couchClient;
 	private static Context ctx;
 
-	/* 
+	/*
 	 * A few of the utility functions require some of the same context
-	 * that cannot be gotten automatically, so made this a class to 
+	 * that cannot be gotten automatically, so made this a class to
 	 * store some context for later functions
 	 */
 	public CouchbaseEmbeddedServer(Context appCtx, ICouchClient client) {
 		couchClient = client;
 		ctx = appCtx;
-		appNamespace = ctx.getPackageName();		
-	}	
-	
+		appNamespace = ctx.getPackageName();
+	}
+
 	/* The path to this apps internal memory */
 	public static String dataPath() {
 		return "/data/data/" + CouchbaseEmbeddedServer.appNamespace;
@@ -61,21 +68,21 @@ public class CouchbaseEmbeddedServer {
 	/* The path to this apps external (sdcard) memory */
 	public static String externalPath() {
 		return Environment.getExternalStorageDirectory() + "/Android/data/" + CouchbaseEmbeddedServer.appNamespace;
-	}	
+	}
 
 	/* Start Couchbase with the default binaries */
 	public ServiceConnection startCouchbase() {
 		return startCouchbase(ctx, defaultRelease);
 	}
 
-	/* 
+	/*
 	 * Start Couchbase, this starts Couchbase as an android service, the ServiceConnection
-	 * returned allowed for futher communication (such as install progress / started 
+	 * returned allowed for futher communication (such as install progress / started
 	 * callbacks), check the ICouchClient.aidl and ICouchServer.aidl for the definition
 	 * of these callbacks
 	 */
 	public ServiceConnection startCouchbase(Context ctx, String release) {
-		releaseName = release;		
+		releaseName = release;
 		ctx.bindService(new Intent(ctx, CouchService.class), mConnection, Context.BIND_AUTO_CREATE);
 		return mConnection;
 	}
@@ -87,15 +94,34 @@ public class CouchbaseEmbeddedServer {
 	 * be able to be opened
 	 */
 	public void installDatabase(String fileName) throws IOException {
-		File db = new File(externalPath() + "/db/" + fileName);
-		if (!db.exists()) {
-			
-			// Ensure db directory exists
-			(new File(externalPath() + "/db/")).mkdirs();
-			
+		File destination = new File(externalPath() + "/db/" + fileName);
+		copyIffNotExists(fileName, destination);
+	}
+
+	/*
+	 * Copy an .ini file from the assets folder into
+	 * /data/data/com.your.app/user_data directory and
+	 * add it to the list of ini files for couch to load
+	 */
+	public void copyIniFile(String fileName) throws IOException {
+		File destination = new File(dataPath() + "/user_data/" + fileName);
+		try {
+			copyIffNotExists(fileName, destination);
+			customIniFiles.add(destination.getAbsolutePath());
+		} catch(FileNotFoundException e) {
+			throw e;
+		}
+	}
+
+	private void copyIffNotExists(String name, File destination) throws IOException  {
+		if (!destination.exists()) {
+
+			// Ensure directory exists
+			(new File(destination.getParent())).mkdirs();
+
 			AssetManager assetManager = ctx.getAssets();
-			InputStream in = assetManager.open(fileName);
-			OutputStream out = new FileOutputStream(db);
+			InputStream in = assetManager.open(name);
+			OutputStream out = new FileOutputStream(destination);
 			byte[] buffer = new byte[1024];
 			int read;
 			while((read = in.read(buffer)) != -1){
