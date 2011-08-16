@@ -1,7 +1,5 @@
 ## Mobile Couchbase for Android
 
-helllloooo?
-
 Apache CouchDB on Android provides a simple way to sync your application data across devices and provide cloud backup of user data. Unlike other cloud solutions, the data is hosted on the device by Couchbase Mobile, so even when the network is down or slow (airplane, subway, backyard) the application is responsive to users.
 
 What this means for you:
