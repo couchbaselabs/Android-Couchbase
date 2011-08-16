@@ -182,9 +182,6 @@ public class CouchService extends Service {
 		String shell = "/system/bin/sh";
 		String couchbin = join(args, " ");
 
-		Log.v(CouchbaseEmbeddedServer.TAG, "couchbin");
-		Log.v(CouchbaseEmbeddedServer.TAG, couchbin);
-
 		int[] pidbuffer = new int[1];
 		final FileDescriptor fd = Exec.createSubprocess(shell, cmd, couchbin, pidbuffer);
 		pid = pidbuffer[0];
