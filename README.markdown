@@ -28,26 +28,21 @@ If you have questions or get stuck or just want to say hi, email <mobile@couchba
 
 These instructions require you to have installed Eclipse and the Android SDK, the [Android developer website](http://developer.android.com/sdk/installing.html) has instructions.
 
-## Running the Demo app
-
-### Get the main repository
-
-    git clone git://github.com/couchbaselabs/Android-Couchbase.git
-    git clone git://github.com/couchbaselabs/Android-Demo.git
-
-Import both the libcouch-android and Android-Demo projects into your workbench with File -> Import -> General -> Existing Projects into Workspace and browse to the location you checked out the repositories into.
-
-You will need to do a clean build, Project -> Clean and choose both libcouch-android CouchApp
-
-You should now be able to run CouchApp by right clicking on the CouchApp project and choosing Run As -> Android Application
-
 ## Building a new application
 
-Start a new Android project, right click your new project -> Properties -> Android and on the lower libraries panel press "Add" and select the LibCouch project
+First you need to download Android-Couchbase
 
-Copy assets/release-0.1.tgz.jpg from LibCouch/assets into your projects assets directory
+    git clone git://github.com/couchbase/Android-Couchbase.git
 
-back in the properties dialog pick Java Build Path -> Libraries and Add JARS, navigate to LibCouch/lib and choose both commons-compress-1.0.jar and commons-io.2.0.1.jar
+And ensure its opened in eclipse (`File -> Import -> Existing Projects`)
+
+Then start a new Android project `File -> New Project -> Android Project` and follow the wizard.
+
+You will need to add some dependancies so your project can see Android-Couchbase. Right click your project and select `Properties -> Android` and on the lower libraries panel press "Add" and select the LibCouch project.
+
+Copy `assets/couchbase-$RELEASE_VERSION.tgz.jpg` from Android-Couchbase/assets into your projects assets directory
+
+back in the properties dialog pick Java Build Path -> Libraries and Add JARS, navigate to LibCouch/lib and choose `commons-io.2.0.1.jar`
 
 Inside your AndroidManifest.xml you will need the following definitions inside the <manifest> tag
 
@@ -79,11 +74,11 @@ inside your <application> tag, then the following code is used inside your appli
     String release = "release-0.1";
     ServiceConnection couchServiceConnection = CouchDB.getService(getBaseContext(), null, release, mCallback);
 
-for example of all of these you can check inside the Android-Demo folder
+For examples please look at https://github.com/couchbase/Android-EmptyApp
 
 ## Build information
 
-The current build of Android Couchbase embed the CouchDB binaries. There is information on how to build these binaries on the [build-android-couch](https://github.com/couchbaselabs/build-android-couch) project.
+The current build of Android Couchbase embed the CouchDB binaries. There is information on how to build these binaries on the [SourceBuild](https://github.com/couchbase/Android-Couchbase-SourceBuild) project.
 
 ## License
 
