@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="couchbase-build" default="all">
+
+	<property file="build.properties" />
+
+	<target name="help">
+		<echo>
+To use this script, please set the property android.couchbase.dir in your build.properties file to
+point to the location you installed Android-Couchbase.
+			
+The following targets are available:
+			
+add-couchbase-android-library-reference - Check/Add requried Android-Couchbase library reference
+update-couchbase-android-assets - Check/Update required Android-Couchbase assets
+check-manifest-permissions - Check/Suggest required permissions in AndroidManifest.xml			
+suggest-manifest-service - Check/Suggest required service definition in AndroidManifest.xml
+			
+all - Run all checks
+		</echo>
+		
+	</target>
+	
+	<target name="all" depends="add-couchbase-android-library-reference,update-classpath,update-couchbase-android-assets,check-manifest-permissions,suggest-manifest-service">
+	</target>
+	
+	<!-- Library Reference -->
+	
+	<target name="check-couchbase-android-library-reference" depends="_init">
+		<condition property="contains.android.library.reference">
+			<resourcecontains resource="${basedir}/default.properties" substring="Android-Couchbase"/>
+		</condition>
+	</target>	
+	
+	<target name="add-couchbase-android-library-reference" depends="check-couchbase-android-library-reference" unless="contains.android.library.reference">
+		<!-- Convert the path to a relative path -->
+		<property name="rel.android.couchbase.dir" location="${android.couchbase.dir}" relative="true"/>
+		<exec executable="${sdk.dir}/tools/android">
+		  <arg value="update"/>
+		  <arg value="project"/>
+		  <arg value="--path"/>
+		  <arg value="${basedir}"/>
+		  <arg value="--library"/>
+		  <arg value="${rel.android.couchbase.dir}"/>		  
+		</exec>
+	</target>
+	
+	<!-- Assets -->
+	
+	<target name="check-couchbase-android-assets" depends="_init">
+		<uptodate property="android.couchbase.assets.uptodate">
+			<srcfiles dir= "${android.couchbase.dir}/assets" includes="**/*"/>
+			<mapper type="glob" from="couchbase-*.tgz.jpg" 
+					to="${basedir}/assets/couchbase-*.tgz.jpg"/>
+		</uptodate>
+	</target>
+	
+	<target name="update-couchbase-android-assets" depends="check-couchbase-android-assets" unless="android.couchbase.assets.uptodate">
+		<copy todir="${basedir}/assets/">
+			<fileset dir="${android.couchbase.dir}/assets" includes="**/*.tgz.jpg"/>
+			<globmapper from="*" to="*"/>
+		</copy>
+		<echo>Your Android-Couchbase assets have been updated, you may remove the old assets.</echo>
+	</target>
+	
+	<!-- Permissions -->
+	
+	<target name="check-manifest-permissions" depends="suggest-manifest-permission.ACCESS_NETWORK_STATE,suggest-manifest-permission.INTERNET,suggest-manifest-permission.WRITE_EXTERNAL_STORAGE">
+		 <delete file="AndroidManifest.xml.orig.p1"/>
+		 <delete file="AndroidManifest.xml.orig.p2"/>
+		 <delete file="AndroidManifest.xml.orig.p3"/>
+		 <delete file="AndroidManifest.xml.orig.cs"/>
+	</target>
+	
+	<target name="suggest-manifest-permission.ACCESS_NETWORK_STATE"
+			depends="check-manifest-permission.ACCESS_NETWORK_STATE"
+			unless="permission.ACCESS_NETWORK_STATE">
+		<!-- backup existing AndroidManifest.xml -->
+		<copy file="AndroidManifest.xml" tofile="AndroidManifest.xml.orig.p1"/>
+		<xslt style="${android.couchbase.dir}/script/permission-ACCESS_NETWORK_STATE.xsl" in="AndroidManifest.xml.orig.p1" out="AndroidManifest.xml" force="true"></xslt>
+	</target>		
+	
+	<target name="check-manifest-permission.ACCESS_NETWORK_STATE" depends="_init">
+		<condition property="permission.ACCESS_NETWORK_STATE">
+			<resourcecontains resource="${basedir}/AndroidManifest.xml" substring="android.permission.ACCESS_NETWORK_STATE"/>
+		</condition>
+	</target>
+	
+	<target name="suggest-manifest-permission.INTERNET"
+			depends="check-manifest-permission.INTERNET"
+			unless="permission.INTERNET">
+		<!-- backup existing AndroidManifest.xml -->
+		<copy file="AndroidManifest.xml" tofile="AndroidManifest.xml.orig.p2"/>
+		<xslt style="${android.couchbase.dir}/script/permission-INTERNET.xsl" in="AndroidManifest.xml.orig.p2" out="AndroidManifest.xml" force="true"></xslt>
+	</target>		
+	
+	<target name="check-manifest-permission.INTERNET" depends="_init">
+		<condition property="permission.INTERNET">
+			<resourcecontains resource="${basedir}/AndroidManifest.xml" substring="android.permission.INTERNET"/>
+		</condition>
+	</target>
+	
+	<target name="suggest-manifest-permission.WRITE_EXTERNAL_STORAGE"
+			depends="check-manifest-permission.WRITE_EXTERNAL_STORAGE"
+			unless="permission.WRITE_EXTERNAL_STORAGE">
+		<!-- backup existing AndroidManifest.xml -->
+		<copy file="AndroidManifest.xml" tofile="AndroidManifest.xml.orig.p3"/>
+		<xslt style="${android.couchbase.dir}/script/permission-WRITE_EXTERNAL_STORAGE.xsl" in="AndroidManifest.xml.orig.p3" out="AndroidManifest.xml" force="true"></xslt>
+	</target>		
+			
+	<target name="check-manifest-permission.WRITE_EXTERNAL_STORAGE">
+		<condition property="permission.WRITE_EXTERNAL_STORAGE">
+			<resourcecontains resource="${basedir}/AndroidManifest.xml" substring="android.permission.WRITE_EXTERNAL_STORAGE"/>
+		</condition>
+	</target>
+	
+	<!-- Service -->
+	<target name="suggest-manifest-service"
+			depends="check-manifest-service"
+			unless="service.couch.exists">
+		<!-- backup existing AndroidManifest.xml -->
+		<copy file="AndroidManifest.xml" tofile="AndroidManifest.xml.orig.cs"/>
+		<xslt style="${android.couchbase.dir}/script/couchbase-service.xsl" in="AndroidManifest.xml.orig.cs" out="AndroidManifest.xml" force="true"></xslt>
+	</target>		
+	
+	<target name="check-manifest-service">
+		<condition property="service.couch.exists">
+			<resourcecontains resource="${basedir}/AndroidManifest.xml" substring="com.couchbase.libcouch.CouchService"/>
+		</condition>
+	</target>
+	
+	<target name="check-classpath">
+		<condition property="commons.compress.exists">
+			<resourcecontains resource="${basedir}/.classpath" substring="/Android-Couchbase/lib/commons-compress-1.0.jar"/>
+		</condition>		
+	</target>
+	
+	<target name="update-classpath" depends="check-classpath" unless="commons.compress.exists">
+		<!-- backup existing .classpath -->
+		<copy file=".classpath" tofile=".classpath.orig"/>
+		<xslt style="${android.couchbase.dir}/script/classpath.xsl" in=".classpath.orig" out=".classpath"></xslt>
+	</target>
+	
+	<target name="_init">
+		<!-- don't continue if it appears android.couchbase.dir is set incorrectly -->
+		<available file="${android.couchbase.dir}/src/com/couchbase/libcouch/CouchbaseMobile.java"
+			property="android.couchbase.dir.valid"/>
+		<fail message="Property android.couchbase.dir does not appear to be set correctly." unless="android.couchbase.dir.valid"/>		
+	</target>
+
+</project>
