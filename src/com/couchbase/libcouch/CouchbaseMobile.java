@@ -22,7 +22,7 @@ import android.os.RemoteException;
  * main function is to allow developers to start Couchbase and contains
  * some utility functions
  */
-public class CouchbaseEmbeddedServer {
+public class CouchbaseMobile {
 
 	/* Tag used for log messages */
 	public final static String TAG = "Couchbase";
@@ -54,7 +54,7 @@ public class CouchbaseEmbeddedServer {
 	 * that cannot be gotten automatically, so made this a class to
 	 * store some context for later functions
 	 */
-	public CouchbaseEmbeddedServer(Context appCtx, ICouchClient client) {
+	public CouchbaseMobile(Context appCtx, ICouchClient client) {
 		couchClient = client;
 		ctx = appCtx;
 		appNamespace = ctx.getPackageName();
@@ -62,12 +62,12 @@ public class CouchbaseEmbeddedServer {
 
 	/* The path to this apps internal memory */
 	public static String dataPath() {
-		return "/data/data/" + CouchbaseEmbeddedServer.appNamespace;
+		return "/data/data/" + CouchbaseMobile.appNamespace;
 	}
 
 	/* The path to this apps external (sdcard) memory */
 	public static String externalPath() {
-		return Environment.getExternalStorageDirectory() + "/Android/data/" + CouchbaseEmbeddedServer.appNamespace;
+		return Environment.getExternalStorageDirectory() + "/Android/data/" + CouchbaseMobile.appNamespace;
 	}
 
 	/* Start Couchbase with the default binaries */

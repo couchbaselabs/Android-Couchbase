@@ -161,7 +161,7 @@ public class CouchService extends Service {
 	/* Start the couch process, run in a seperate thread */
 	void startCouch() {
 
-		String path = CouchbaseEmbeddedServer.dataPath();
+		String path = CouchbaseMobile.dataPath();
 
 		String cmd = path + "/couchdb/bin/couchdb_wrapper";
 
@@ -173,7 +173,7 @@ public class CouchService extends Service {
 				path + "/couchdb/etc/couchdb/android.default.ini"};
 
 		ArrayList<String> args = new ArrayList<String>(Arrays.asList(plainArgs));
-		for (String iniPath : CouchbaseEmbeddedServer.customIniFiles) {
+		for (String iniPath : CouchbaseMobile.customIniFiles) {
 			args.add(iniPath);
 		}
 
@@ -194,7 +194,7 @@ public class CouchService extends Service {
 				try {
 					while (fd.valid()) {
 						String line = in.readLine();
-						Log.v(CouchbaseEmbeddedServer.TAG, line);
+						Log.v(CouchbaseMobile.TAG, line);
 						if (line.contains("has started on")) {
 							couchStarted = true;
 							url = new URL(matchURLs(line).get(0));
@@ -203,7 +203,7 @@ public class CouchService extends Service {
 						}
 					}
 				} catch (Exception e) {
-					Log.v(CouchbaseEmbeddedServer.TAG, "CouchDB has stopped unexpectedly");
+					Log.v(CouchbaseMobile.TAG, "CouchDB has stopped unexpectedly");
 					Message.obtain(mHandler, CouchService.ERROR, e).sendToTarget();
 				}
 			}
