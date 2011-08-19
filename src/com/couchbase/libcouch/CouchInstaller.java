@@ -15,6 +15,7 @@ import java.util.zip.GZIPInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.utils.IOUtils;
+
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
@@ -179,8 +180,8 @@ public class CouchInstaller {
 				{"%sdk_int%", Integer.toString(android.os.Build.VERSION.SDK_INT)}
 		};
 
-		replace(CouchbaseEmbeddedServer.dataPath() + "/erlang/erts-5.7.5/bin/start", replacements);
-		replace(CouchbaseEmbeddedServer.dataPath() + "/erlang/erts-5.7.5/bin/erl", replacements);
+		replace(CouchbaseEmbeddedServer.dataPath() + "/erlang/erts-5.8.5/bin/start", replacements);
+		replace(CouchbaseEmbeddedServer.dataPath() + "/erlang/erts-5.8.5/bin/erl", replacements);
 		replace(CouchbaseEmbeddedServer.dataPath() + "/erlang/bin/start", replacements);
 		replace(CouchbaseEmbeddedServer.dataPath() + "/erlang/bin/erl", replacements);
 		replace(CouchbaseEmbeddedServer.dataPath() + "/couchdb/lib/couchdb/erlang/lib/couch/ebin/couch.app", replacements);
