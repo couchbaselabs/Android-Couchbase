@@ -124,7 +124,7 @@ all - Run all checks
 	
 	<target name="check-manifest-service">
 		<condition property="service.couch.exists">
-			<resourcecontains resource="${basedir}/AndroidManifest.xml" substring="com.couchbase.libcouch.CouchService"/>
+			<resourcecontains resource="${basedir}/AndroidManifest.xml" substring="com.couchbase.android.CouchbaseService"/>
 		</condition>
 	</target>
 	
@@ -142,7 +142,7 @@ all - Run all checks
 	
 	<target name="_init">
 		<!-- don't continue if it appears android.couchbase.dir is set incorrectly -->
-		<available file="${android.couchbase.dir}/src/com/couchbase/libcouch/CouchbaseMobile.java"
+		<available file="${android.couchbase.dir}/src/com/couchbase/android/CouchbaseMobile.java"
 			property="android.couchbase.dir.valid"/>
 		<fail message="Property android.couchbase.dir does not appear to be set correctly." unless="android.couchbase.dir.valid"/>		
 	</target>

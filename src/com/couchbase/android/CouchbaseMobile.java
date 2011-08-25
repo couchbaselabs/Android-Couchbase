@@ -1,4 +1,4 @@
-package com.couchbase.libcouch;
+package com.couchbase.android;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -7,6 +7,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+
+import com.couchbase.android.ICouchbaseDelegate;
+import com.couchbase.android.ICouchbaseService;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -34,7 +37,7 @@ public class CouchbaseMobile {
 	private static String releaseName;
 
 	/*
-	 * The default package name of couchdb binaries, applications are
+	 * The default package name of Couchbase binaries, applications are
 	 * recommended to use this default package name as it ensures this library
 	 * was built to support these binaries
 	 */
@@ -45,8 +48,8 @@ public class CouchbaseMobile {
 	 */
 	public static ArrayList<String> customIniFiles = new ArrayList<String>();
 
-	private static ICouchService couchService;
-	private static ICouchClient couchClient;
+	private static ICouchbaseService couchbaseService;
+	private static ICouchbaseDelegate couchbaseDelegate;
 	private static Context ctx;
 
 	/*
@@ -54,8 +57,8 @@ public class CouchbaseMobile {
 	 * that cannot be gotten automatically, so made this a class to
 	 * store some context for later functions
 	 */
-	public CouchbaseMobile(Context appCtx, ICouchClient client) {
-		couchClient = client;
+	public CouchbaseMobile(Context appCtx, ICouchbaseDelegate delegate) {
+		couchbaseDelegate = delegate;
 		ctx = appCtx;
 		appNamespace = ctx.getPackageName();
 	}
@@ -78,18 +81,18 @@ public class CouchbaseMobile {
 	/*
 	 * Start Couchbase, this starts Couchbase as an android service, the ServiceConnection
 	 * returned allowed for futher communication (such as install progress / started
-	 * callbacks), check the ICouchClient.aidl and ICouchServer.aidl for the definition
+	 * callbacks), check the ICouchbaseDelegate.aidl and ICouchbaseService.aidl for the definition
 	 * of these callbacks
 	 */
 	public ServiceConnection startCouchbase(Context ctx, String release) {
 		releaseName = release;
-		ctx.bindService(new Intent(ctx, CouchService.class), mConnection, Context.BIND_AUTO_CREATE);
+		ctx.bindService(new Intent(ctx, CouchbaseService.class), mConnection, Context.BIND_AUTO_CREATE);
 		return mConnection;
 	}
 
 	/*
 	 * This will copy a database from the assets folder into the
-	 * couch database directory
+	 * couchbase database directory
 	 * NOTE: Databases that use snappy encoding will not currently
 	 * be able to be opened
 	 */
@@ -101,7 +104,7 @@ public class CouchbaseMobile {
 	/*
 	 * Copy an .ini file from the assets folder into
 	 * /data/data/com.your.app/user_data directory and
-	 * add it to the list of ini files for couch to load
+	 * add it to the list of ini files for couchbase to load
 	 */
 	public void copyIniFile(String fileName) throws IOException {
 		File destination = new File(dataPath() + "/user_data/" + fileName);
@@ -133,14 +136,14 @@ public class CouchbaseMobile {
 	}
 
 	/*
-	 * This holds the connection to the CouchDB Service
+	 * This holds the connection to the Couchbase Service
 	 */
 	private final static ServiceConnection mConnection = new ServiceConnection() {
 		@Override
 		public void onServiceConnected(ComponentName className, final IBinder service) {
 			try {
-				couchService = ICouchService.Stub.asInterface(service);
-				couchService.startCouchbase(couchClient, releaseName);
+				couchbaseService = ICouchbaseService.Stub.asInterface(service);
+				couchbaseService.startCouchbase(couchbaseDelegate, releaseName);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			}
@@ -148,7 +151,7 @@ public class CouchbaseMobile {
 
 		@Override
 		public void onServiceDisconnected(ComponentName className) {
-			couchService = null;
+			couchbaseService = null;
 		}
 	};
 }

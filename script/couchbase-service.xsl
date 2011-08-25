@@ -12,7 +12,7 @@ xmlns:android="http://schemas.android.com/apk/res/android">
 <xsl:template match="application">
   <xsl:copy>
     <xsl:apply-templates select="@*|node()"/>
-    <service android:name="com.couchbase.libcouch.CouchService" android:enabled="true" android:exported="false"></service>
+    <service android:name="com.couchbase.android.CouchbaseService" android:enabled="true" android:exported="false"></service>
   </xsl:copy>
 </xsl:template>
 

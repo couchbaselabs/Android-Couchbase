@@ -1,4 +1,4 @@
-package com.couchbase.libcouch;
+package com.couchbase.android;
 
 import java.io.BufferedReader;
 import java.io.FileDescriptor;
@@ -26,35 +26,37 @@ import android.os.Message;
 import android.os.RemoteException;
 import android.util.Log;
 
+import com.couchbase.android.ICouchbaseDelegate;
+import com.couchbase.android.ICouchbaseService;
 import com.google.ase.Exec;
 
-public class CouchService extends Service {
+public class CouchbaseService extends Service {
 
 	/*
-	 * Contants used to communnicate between the Couch Service
+	 * Contants used to communnicate between the Couchbase Service
 	 * and this thread
 	 */
 	public final static int ERROR = 0;
 	public final static int PROGRESS = 1;
 	public final static int COMPLETE = 2;
-	public final static int COUCH_STARTED = 3;
+	public final static int COUCHBASE_STARTED = 3;
 	public final static int INSTALLING = 4;
 
-	/* The url Couch has started on */
+	/* The url Couchbase has started on */
 	public URL url;
 
-	/* Has Couch started */
-	public boolean couchStarted = false;
+	/* Has Couchbase started */
+	public boolean couchbaseStarted = false;
 
-	/* This is how we talk to the app that started Couch */
-	private ICouchClient client;
+	/* This is how we talk to the app that started Couchbase */
+	private ICouchbaseDelegate couchbaseDelegate;
 
 	private Integer pid;
 	private PrintStream out;
 	private BufferedReader in;
 
 	/*
-	 * Couch runs in a seperate thread, have the communication run
+	 * Couchbase runs in a seperate thread, have the communication run
 	 * through our own handler so the app doesnt need to create a new
 	 * handler to deal with touching the UI from a different thread
 	 */
@@ -68,19 +70,19 @@ public class CouchService extends Service {
 					StringWriter sw = new StringWriter();
 					e.printStackTrace(new PrintWriter(sw));
 					String stacktrace = sw.toString();
-					if (client != null) {
-						client.exit(stacktrace);
+					if (couchbaseDelegate != null) {
+						couchbaseDelegate.exit(stacktrace);
 					}
 					break;
 				case PROGRESS:
-					client.installing(msg.arg1, msg.arg2);
+					couchbaseDelegate.installing(msg.arg1, msg.arg2);
 					break;
 				case COMPLETE:
-					startCouch();
+					startCouchbaseService();
 					break;
-				case COUCH_STARTED:
+				case COUCHBASE_STARTED:
 					URL url = (URL) msg.obj;
-					client.couchStarted(url.getHost(), url.getPort());
+					couchbaseDelegate.couchbaseStarted(url.getHost(), url.getPort());
 					break;
 				}
 			} catch (RemoteException e) {
@@ -94,10 +96,10 @@ public class CouchService extends Service {
 	 */
 	@Override
 	public void onDestroy() {
-		if (couchStarted) {
+		if (couchbaseStarted) {
 			stop();
 		}
-		client = null;
+		couchbaseDelegate = null;
 	}
 
 	/*
@@ -105,24 +107,24 @@ public class CouchService extends Service {
 	 */
 	@Override
 	public IBinder onBind(Intent intent) {
-		return new CouchServiceImpl();
+		return new CouchbaseServiceImpl();
 	}
 
 	/*
-	 * implements the callbacks that clients can call into the couchdb service
+	 * implements the callbacks that clients can call into the couchbase service
 	 */
-	public class CouchServiceImpl extends ICouchService.Stub {
+	public class CouchbaseServiceImpl extends ICouchbaseService.Stub {
 
 		@Override
-		public void startCouchbase(ICouchClient cb, final String pkg) throws RemoteException {
-			client = cb;
-			if (!CouchInstaller.checkInstalled(pkg)) {
-				installCouch(pkg);
+		public void startCouchbase(ICouchbaseDelegate cb, final String pkg) throws RemoteException {
+			couchbaseDelegate = cb;
+			if (!CouchbaseInstaller.checkInstalled(pkg)) {
+				installCouchbase(pkg);
 			} else {
-				if (couchStarted == true) {
-					couchStarted();
+				if (couchbaseStarted == true) {
+					couchbaseStarted();
 				} else {
-					startCouch();
+					startCouchbaseService();
 				}
 			}
 		}
@@ -135,21 +137,21 @@ public class CouchService extends Service {
 		}
 	};
 
-	/* once couch has started we need to notify the waiting client */
-	void couchStarted() throws RemoteException {
-		client.couchStarted(url.getHost(), url.getPort());
+	/* once couchbase has started we need to notify the waiting client */
+	void couchbaseStarted() throws RemoteException {
+		couchbaseDelegate.couchbaseStarted(url.getHost(), url.getPort());
 	}
 
-	/* Install Couch in a seperate thread */
-	private void installCouch(final String pkg) {
-		final CouchService service = this;
+	/* Install Couchbase in a seperate thread */
+	private void installCouchbase(final String pkg) {
+		final CouchbaseService service = this;
 		new Thread() {
 			@Override
 			public void run() {
 				try {
-					CouchInstaller.doInstall(pkg, mHandler, service);
+					CouchbaseInstaller.doInstall(pkg, mHandler, service);
 				} catch (FileNotFoundException e) {
-					Message.obtain(mHandler, CouchService.ERROR, e).sendToTarget();
+					Message.obtain(mHandler, CouchbaseService.ERROR, e).sendToTarget();
 					e.printStackTrace();
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -158,8 +160,8 @@ public class CouchService extends Service {
 		}.start();
 	}
 
-	/* Start the couch process, run in a seperate thread */
-	void startCouch() {
+	/* Start the couchbase process, run in a seperate thread */
+	void startCouchbaseService() {
 
 		String path = CouchbaseMobile.dataPath();
 
@@ -196,15 +198,15 @@ public class CouchService extends Service {
 						String line = in.readLine();
 						Log.v(CouchbaseMobile.TAG, line);
 						if (line.contains("has started on")) {
-							couchStarted = true;
+							couchbaseStarted = true;
 							url = new URL(matchURLs(line).get(0));
-							Message.obtain(mHandler, CouchService.COUCH_STARTED, url)
+							Message.obtain(mHandler, CouchbaseService.COUCHBASE_STARTED, url)
 								.sendToTarget();
 						}
 					}
 				} catch (Exception e) {
-					Log.v(CouchbaseMobile.TAG, "CouchDB has stopped unexpectedly");
-					Message.obtain(mHandler, CouchService.ERROR, e).sendToTarget();
+					Log.v(CouchbaseMobile.TAG, "Couchbase has stopped unexpectedly");
+					Message.obtain(mHandler, CouchbaseService.ERROR, e).sendToTarget();
 				}
 			}
 		}).start();
@@ -219,7 +221,7 @@ public class CouchService extends Service {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		couchStarted = false;
+		couchbaseStarted = false;
 	}
 
 	private ArrayList<String> matchURLs(String text) {

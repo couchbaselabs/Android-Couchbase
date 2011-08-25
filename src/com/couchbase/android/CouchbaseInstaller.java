@@ -1,4 +1,4 @@
-package com.couchbase.libcouch;
+package com.couchbase.android;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -20,13 +20,13 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
-public class CouchInstaller {
+public class CouchbaseInstaller {
 
 	public static String indexFile() {
 		return CouchbaseMobile.dataPath() + "/installedfiles.index";
 	}
 
-	public static void doInstall(String pkg, Handler handler, CouchService service)
+	public static void doInstall(String pkg, Handler handler, CouchbaseService service)
 		throws IOException {
 
 		if(!checkInstalled(pkg)) {
@@ -39,10 +39,10 @@ public class CouchInstaller {
 	         * of protecting ourselves from wiping the entire SD card with a typo.
 	         */
 
-		    File couchDir = new File(CouchbaseMobile.dataPath() + "/couchdb");
+		    File couchbaseDir = new File(CouchbaseMobile.dataPath() + "/couchdb");
 
-		    if (couchDir.exists()) {
-		        deleteDirectory(couchDir);
+		    if (couchbaseDir.exists()) {
+		        deleteDirectory(couchbaseDir);
 		    }
 
 		    File erlangDir = new File(CouchbaseMobile.dataPath() + "/erlang");
@@ -55,14 +55,14 @@ public class CouchInstaller {
 		}
 
 		Message done = Message.obtain();
-		done.what = CouchService.COMPLETE;
+		done.what = CouchbaseService.COMPLETE;
 		handler.sendMessage(done);
 	}
 
 	/*
 	 * This fetches a given package from amazon and tarbombs it to the filsystem
 	 */
-	private static void installPackage(String pkg, Handler handler, CouchService service)
+	private static void installPackage(String pkg, Handler handler, CouchbaseService service)
 			throws IOException {
 
 		Log.v(CouchbaseMobile.TAG, "Installing " + pkg);
@@ -146,7 +146,7 @@ public class CouchInstaller {
 			Message progress = new Message();
 			progress.arg1 = (int) ++filesUnpacked;
 			progress.arg2 = (int) filesInArchive;
-			progress.what = CouchService.PROGRESS;
+			progress.what = CouchbaseService.PROGRESS;
 			handler.sendMessage(progress);
 		}
 
@@ -194,7 +194,7 @@ public class CouchInstaller {
 	}
 
 	/*
-	 * Verifies that requested version of CouchDB is installed by checking for the presence of
+	 * Verifies that requested version of Couchbase is installed by checking for the presence of
 	 * the package files we write upon installation in the data directory of the app.
 	 */
 	public static boolean checkInstalled(String pkg) {
