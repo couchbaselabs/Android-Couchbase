@@ -1,0 +1,157 @@
+<project name="couchbase-internal" default="help">
+
+  <target name="update-libaries">
+	<unzip src="Couchbase.zip" dest="libs">
+		<patternset>
+			<include name="Couchbase/libs/**/*"/>			
+		</patternset>
+		<globmapper from="Couchbase/libs/*" to="*"/>
+	</unzip>
+  </target>	
+  
+  <target name="update-assets">
+    <unzip src="Couchbase.zip" dest="assets">
+    	<patternset>
+    		<include name="Couchbase/assets/**/*"/>
+    	</patternset>
+    	<flattenmapper/>
+    </unzip>
+  </target>
+  
+	<target name="check-classpath-compress">
+		<condition property="commons.compress.exists">
+			<resourcecontains resource="${basedir}/.classpath" substring="libs/commons-compress-1.0.jar"/>
+		</condition>		
+	</target>
+	
+	<target name="update-classpath-compress" depends="check-classpath-compress" unless="commons.compress.exists">
+		<!-- backup existing .classpath -->
+		<copy file=".classpath" tofile=".classpath.orig1"/>
+		<xslt in=".classpath.orig1" out=".classpath">
+			<style>
+			  	<javaresource name="Couchbase/script/classpath.compress.xsl">
+			  		<classpath location="Couchbase.zip"/>
+			  	</javaresource>
+		  	</style>
+		</xslt>
+	</target>
+	
+	<target name="check-classpath-couchbase">
+		<condition property="couchbase.exists">
+			<resourcecontains resource="${basedir}/.classpath" substring="libs/couchbase.jar"/>
+		</condition>		
+	</target>
+	
+	<target name="update-classpath-couchbase" depends="check-classpath-couchbase" unless="couchbase.exists">
+		<!-- backup existing .classpath -->
+		<copy file=".classpath" tofile=".classpath.orig2"/>
+		<xslt in=".classpath.orig2" out=".classpath">
+			<style>
+			  	<javaresource name="Couchbase/script/classpath.couchbase.xsl">
+			  		<classpath location="Couchbase.zip"/>
+			  	</javaresource>
+		  	</style>
+		</xslt>
+	</target>	
+	
+	<target name="update-classpath" depends="update-classpath-compress, update-classpath-couchbase">
+		<delete file=".classpath.orig1"/>
+		<delete file=".classpath.orig2"/>		
+	</target>
+	
+	<!-- Permissions -->
+	
+	<target name="suggest-manifest-permissions" depends="suggest-manifest-permission.ACCESS_NETWORK_STATE,suggest-manifest-permission.INTERNET,suggest-manifest-permission.WRITE_EXTERNAL_STORAGE">
+
+	</target>
+	
+	<target name="suggest-manifest-permission.ACCESS_NETWORK_STATE"
+			depends="check-manifest-permission.ACCESS_NETWORK_STATE"
+			unless="permission.ACCESS_NETWORK_STATE">
+		<!-- backup existing AndroidManifest.xml -->
+		<copy file="AndroidManifest.xml" tofile="AndroidManifest.xml.orig.p1"/>
+		<xslt in="AndroidManifest.xml.orig.p1" out="AndroidManifest.xml" force="true">
+			<style>
+			  	<javaresource name="Couchbase/script/permission-ACCESS_NETWORK_STATE.xsl">
+			  		<classpath location="Couchbase.zip"/>
+			  	</javaresource>
+		  	</style>		
+		</xslt>
+	</target>		
+	
+	<target name="check-manifest-permission.ACCESS_NETWORK_STATE">
+		<condition property="permission.ACCESS_NETWORK_STATE">
+			<resourcecontains resource="${basedir}/AndroidManifest.xml" substring="android.permission.ACCESS_NETWORK_STATE"/>
+		</condition>
+	</target>
+	
+	<target name="suggest-manifest-permission.INTERNET"
+			depends="check-manifest-permission.INTERNET"
+			unless="permission.INTERNET">
+		<!-- backup existing AndroidManifest.xml -->
+		<copy file="AndroidManifest.xml" tofile="AndroidManifest.xml.orig.p2"/>
+		<xslt in="AndroidManifest.xml.orig.p2" out="AndroidManifest.xml" force="true">
+			<style>
+			  	<javaresource name="Couchbase/script/permission-INTERNET.xsl">
+			  		<classpath location="Couchbase.zip"/>
+			  	</javaresource>
+		  	</style>			
+		</xslt>
+	</target>		
+	
+	<target name="check-manifest-permission.INTERNET">
+		<condition property="permission.INTERNET">
+			<resourcecontains resource="${basedir}/AndroidManifest.xml" substring="android.permission.INTERNET"/>
+		</condition>
+	</target>
+	
+	<target name="suggest-manifest-permission.WRITE_EXTERNAL_STORAGE"
+			depends="check-manifest-permission.WRITE_EXTERNAL_STORAGE"
+			unless="permission.WRITE_EXTERNAL_STORAGE">
+		<!-- backup existing AndroidManifest.xml -->
+		<copy file="AndroidManifest.xml" tofile="AndroidManifest.xml.orig.p3"/>
+		<xslt in="AndroidManifest.xml.orig.p3" out="AndroidManifest.xml" force="true">
+			<style>
+			  	<javaresource name="Couchbase/script/permission-WRITE_EXTERNAL_STORAGE.xsl">
+			  		<classpath location="Couchbase.zip"/>
+			  	</javaresource>
+		  	</style>		
+		</xslt>
+	</target>		
+			
+	<target name="check-manifest-permission.WRITE_EXTERNAL_STORAGE">
+		<condition property="permission.WRITE_EXTERNAL_STORAGE">
+			<resourcecontains resource="${basedir}/AndroidManifest.xml" substring="android.permission.WRITE_EXTERNAL_STORAGE"/>
+		</condition>
+	</target>
+	
+	<!-- Service -->
+	<target name="suggest-manifest-service"
+			depends="check-manifest-service"
+			unless="service.couch.exists">
+		<!-- backup existing AndroidManifest.xml -->
+		<copy file="AndroidManifest.xml" tofile="AndroidManifest.xml.orig.cs"/>
+		<xslt in="AndroidManifest.xml.orig.cs" out="AndroidManifest.xml" force="true">
+			<style>
+			  	<javaresource name="Couchbase/script/couchbase-service.xsl">
+			  		<classpath location="Couchbase.zip"/>
+			  	</javaresource>
+		  	</style>		
+		</xslt>
+	</target>		
+	
+	<target name="check-manifest-service">
+		<condition property="service.couch.exists">
+			<resourcecontains resource="${basedir}/AndroidManifest.xml" substring="com.couchbase.libcouch.CouchService"/>
+		</condition>
+	</target>
+	
+	<!-- Manifest -->
+	<target name="suggest-manifest" depends="suggest-manifest-permissions,suggest-manifest-service">
+		 <delete file="AndroidManifest.xml.orig.p1"/>
+		 <delete file="AndroidManifest.xml.orig.p2"/>
+		 <delete file="AndroidManifest.xml.orig.p3"/>
+		 <delete file="AndroidManifest.xml.orig.cs"/>	
+	</target>
+
+</project>

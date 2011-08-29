@@ -11,7 +11,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:template match="classpath">
   <xsl:copy>
     <xsl:apply-templates select="@*|node()"/>
-    <classpathentry kind="lib" path="/Android-Couchbase/lib/commons-compress-1.0.jar"/>
+    <classpathentry kind="lib" path="libs/couchbase.jar"/>
   </xsl:copy>
 </xsl:template>
 
