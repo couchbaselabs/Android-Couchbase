@@ -104,6 +104,18 @@
 		    </mappedresources>
 
 		</zip>
+
+		<zip destfile="bin/Android-Couchbase.zip">
+			<fileset dir="bin">
+				<include name="Couchbase.zip"/>
+			</fileset>
+			<fileset dir="script">
+				<include name="couchbase.xml"/>
+			</fileset>
+			<fileset dir="doc">
+				<include name="README.txt"/>
+			</fileset>
+		</zip>
 	</target>
 
 </project>

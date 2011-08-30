@@ -22,57 +22,79 @@ If you have questions or get stuck or just want to say hi, email <mobile@couchba
 
 These instructions require you to have installed Eclipse and the Android SDK, the [Android developer website](http://developer.android.com/sdk/installing.html) has instructions.
 
-## Downloading
+## Installing Couchbase into your Application
 
-Clone the Android-Couchbase repository
+NOTE: You do not need the source of this repository to use Mobile Couchbase in your Android application.
 
-    git clone git://github.com/couchbase/Android-Couchbase.git
+1.  Create a new Android project or select an existing project
 
-And ensure its opened in eclipse (`File -> Import -> Existing Projects`)
+2.  Download the Android-Couchbase.zip
+  - https://github.com/downloads/couchbase/Android-Couchbase/Android-Couchbase.zip
 
-## Setting up the Android-Couchbase library
+3.  Extract Android-Couchbase.zip, you will see 3 files
+  - Couchbase.zip
+  - couchbase.xml
+  - README.txt
 
-If you have not already done so, you can start a new Android project with `File -> New Project -> Android Project`.
+4.  Place Couchbase.zip and couchbase.xml into the top-level of your project
 
-Inside the Couchbase project there is a file `scripts/add-couchbase-to-project.xml`, right click on this file and `Run as -> Ant Build` you will be prompted for 2 paths, these will be stored in the `build.properties`
+5.  Right-click on couchbase.xml and select Run As > Ant Build
 
-  `Android SDK`: This is the location you installed the SDK into, the folder will look something like `android-sdk-mac_x86`, (`$ type -p android` may help you find its location, remember to strip the `/tools/android` from that path)
+6.  Refresh your project
 
-  `Project Path`: This is the path to the Root of your application, Right clicking on your project and selecting `Properties -> Resource` will show you its location.
+## Starting Couchbase
 
-After you have ran this step you will need to `Refresh` your project (`F5` or `Right Click -> Refresh`)
+Now that your project supports Couchbase, starting Cocuhbase is accomplished by adding a few things to your application's Main Activity.
 
-## Starting Android-Couchbase
-
-Once Android-Couchbase has been setup the following code is used inside your application to start Couchbase
-
-    private final ICouchClient mCallback = new ICouchClient.Stub() {
-      @Override
-      public void couchStarted(String host, int port) {}
-
-      @Override
-      public void installing(int completed, int total) {}
-
-      @Override
-      public void exit(String error) {}
+1.  Create an instance of ICouchbaseDelegate, you can implement these methods to respond to Couchbase events
+<pre>    
+    private final ICouchbaseDelegate mCallback = new ICouchbaseDelegate.Stub() {
+        @Override
+        public void couchbaseStarted(String host, int port) {}
+    
+        @Override
+        public void installing(int completed, int total) {}
+    
+        @Override
+        public void exit(String error) {}
     };
+</pre>
 
-    public void startMyApplication() {
-        CouchbaseMobile couch = new CouchbaseMobile(getBaseContext(), mCallback);
-        couchServiceConnection = couch.startCouchbase();
+2.  Declare a ServiceConnection instance to keep a reference to the Couchbase service
+<pre>
+    private ServiceConnection couchServiceConnection;
+</pre>
+
+3.  Add a method to start Couchbase
+<pre>
+        public void startCouchbase() {
+                CouchbaseMobile couch = new CouchbaseMobile(getBaseContext(), mCallback);
+                couchServiceConnection = couch.startCouchbase();
+        }
+</pre>
+
+4.  Call the startCouchbase method from the appropriate Activity lifecycle methods.  For many applications the onCreate method is appropriate
+<pre>    
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+    
+        ...
+    
+        startCouchbase();
     }
+</pre>    
+
+## Examples
 
 For examples please look at https://github.com/couchbase/Android-EmptyApp
 
-## Use Existing Application
-
-If you have downloaded EmptyApp or other applications that have already been setup to use Android-Couchbase, you may need to reconfigure some options for your system, open the `build.properties` file and correct the following variables:
-
-  `sdk.dir`: This is the location you installed the SDK into, the folder will look something like `android-sdk-mac_x86`, (`$ type -p android` may help you find its location, remember to strip the `/tools/android` from that path)
-
-  `android.couchbase.dir`: This is the path to Android-Couchbase, Right clicking on the Android-Couchbase project and selecting `Properties -> Resource` will show you its location.
-
 ## Build information
+
+To build the Android-Couchbase project from source run the following ant command:
+
+    ant -Dsdk.dir=/path/to/android/sdk dist
+
+Replacing the value for sdk.dir with the path to the Android SDK on the build server.
 
 The current build of Android Couchbase embed the CouchDB binaries. There is information on how to build these binaries on the [SourceBuild](https://github.com/couchbase/Android-Couchbase-SourceBuild) project.
 
