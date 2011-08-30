@@ -1,10 +1,10 @@
 <project name="couchbase" default="manual">
 
-  <include>
+  <import>
   	<javaresource name="Couchbase/script/couchbase-internal.xml">
   		<classpath location="Couchbase.zip"/>
   	</javaresource>
-  </include>
+  </import>
 
   <target name="manual" depends="couchbase-internal.update-libaries,couchbase-internal.update-assets,couchbase-internal.update-classpath,couchbase-internal.suggest-manifest">
   

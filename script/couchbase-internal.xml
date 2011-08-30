@@ -1,5 +1,9 @@
 <project name="couchbase-internal" default="help">
 
+  <target name="help">
+    <echo>This build file should only be executed by couchbase.xml</echo>
+  </target>
+
   <target name="update-libaries">
 	<unzip src="Couchbase.zip" dest="libs">
 		<patternset>
@@ -142,7 +146,7 @@
 	
 	<target name="check-manifest-service">
 		<condition property="service.couch.exists">
-			<resourcecontains resource="${basedir}/AndroidManifest.xml" substring="com.couchbase.libcouch.CouchService"/>
+			<resourcecontains resource="${basedir}/AndroidManifest.xml" substring="com.couchbase.android.CouchbaseService"/>
 		</condition>
 	</target>
 	
