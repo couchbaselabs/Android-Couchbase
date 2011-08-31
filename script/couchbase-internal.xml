@@ -4,63 +4,60 @@
     <echo>This build file should only be executed by couchbase.xml</echo>
   </target>
 
+  <target name="_init">
+    <fail unless="project.path" message="Property project.path must be set"/>
+    <fail unless="couchbase.tmp.dir" message="Property couchbase.tmp.dir must be set"/>
+  </target>
+
+  <target name="manual" depends="_init, update-libaries,update-assets,update-classpath,suggest-manifest">
+
+  </target>
+
   <target name="update-libaries">
-	<unzip src="Couchbase.zip" dest="libs">
-		<patternset>
-			<include name="Couchbase/libs/**/*"/>			
-		</patternset>
-		<globmapper from="Couchbase/libs/*" to="*"/>
-	</unzip>
+    <copy todir="${project.path}/libs">
+      <fileset dir="${couchbase.tmp.dir}">
+        <include name="Couchbase/libs/**/*"/>
+      </fileset>
+      <globmapper from="Couchbase/libs/*" to="*"/>
+    </copy>
   </target>	
   
   <target name="update-assets">
-    <unzip src="Couchbase.zip" dest="assets">
-    	<patternset>
-    		<include name="Couchbase/assets/**/*"/>
-    	</patternset>
-    	<flattenmapper/>
-    </unzip>
+    <copy todir="${project.path}/assets">
+      <fileset dir="${couchbase.tmp.dir}">
+        <include name="Couchbase/assets/**/*"/>
+      </fileset>
+      <flattenmapper/>
+    </copy>
   </target>
   
 	<target name="check-classpath-compress">
 		<condition property="commons.compress.exists">
-			<resourcecontains resource="${basedir}/.classpath" substring="libs/commons-compress-1.0.jar"/>
+			<resourcecontains resource="${project.path}/.classpath" substring="libs/commons-compress-1.0.jar"/>
 		</condition>		
 	</target>
 	
 	<target name="update-classpath-compress" depends="check-classpath-compress" unless="commons.compress.exists">
 		<!-- backup existing .classpath -->
-		<copy file=".classpath" tofile=".classpath.orig1"/>
-		<xslt in=".classpath.orig1" out=".classpath">
-			<style>
-			  	<javaresource name="Couchbase/script/classpath.compress.xsl">
-			  		<classpath location="Couchbase.zip"/>
-			  	</javaresource>
-		  	</style>
-		</xslt>
+		<copy file="${project.path}/.classpath" tofile="${project.path}/.classpath.orig1"/>
+		<xslt style="${couchbase.tmp.dir}/Couchbase/script/classpath.compress.xsl" in="${project.path}/.classpath.orig1" out="${project.path}/.classpath"/>
 	</target>
 	
 	<target name="check-classpath-couchbase">
 		<condition property="couchbase.exists">
-			<resourcecontains resource="${basedir}/.classpath" substring="libs/couchbase.jar"/>
+			<resourcecontains resource="${project.path}/.classpath" substring="libs/couchbase.jar"/>
 		</condition>		
 	</target>
 	
 	<target name="update-classpath-couchbase" depends="check-classpath-couchbase" unless="couchbase.exists">
 		<!-- backup existing .classpath -->
-		<copy file=".classpath" tofile=".classpath.orig2"/>
-		<xslt in=".classpath.orig2" out=".classpath">
-			<style>
-			  	<javaresource name="Couchbase/script/classpath.couchbase.xsl">
-			  		<classpath location="Couchbase.zip"/>
-			  	</javaresource>
-		  	</style>
-		</xslt>
+		<copy file="${project.path}/.classpath" tofile="${project.path}/.classpath.orig2"/>
+		<xslt style="${couchbase.tmp.dir}/Couchbase/script/classpath.couchbase.xsl" in="${project.path}/.classpath.orig2" out="${project.path}/.classpath"/>
 	</target>	
 	
 	<target name="update-classpath" depends="update-classpath-compress, update-classpath-couchbase">
-		<delete file=".classpath.orig1"/>
-		<delete file=".classpath.orig2"/>		
+		<delete file="${project.path}/.classpath.orig1"/>
+		<delete file="${project.path}/.classpath.orig2"/>
 	</target>
 	
 	<!-- Permissions -->
@@ -73,19 +70,13 @@
 			depends="check-manifest-permission.ACCESS_NETWORK_STATE"
 			unless="permission.ACCESS_NETWORK_STATE">
 		<!-- backup existing AndroidManifest.xml -->
-		<copy file="AndroidManifest.xml" tofile="AndroidManifest.xml.orig.p1"/>
-		<xslt in="AndroidManifest.xml.orig.p1" out="AndroidManifest.xml" force="true">
-			<style>
-			  	<javaresource name="Couchbase/script/permission-ACCESS_NETWORK_STATE.xsl">
-			  		<classpath location="Couchbase.zip"/>
-			  	</javaresource>
-		  	</style>		
-		</xslt>
+		<copy file="${project.path}/AndroidManifest.xml" tofile="${project.path}/AndroidManifest.xml.orig.p1"/>
+		<xslt style="${couchbase.tmp.dir}/Couchbase/script/permission-ACCESS_NETWORK_STATE.xsl" in="${project.path}/AndroidManifest.xml.orig.p1" out="${project.path}/AndroidManifest.xml" force="true"/>
 	</target>		
 	
 	<target name="check-manifest-permission.ACCESS_NETWORK_STATE">
 		<condition property="permission.ACCESS_NETWORK_STATE">
-			<resourcecontains resource="${basedir}/AndroidManifest.xml" substring="android.permission.ACCESS_NETWORK_STATE"/>
+			<resourcecontains resource="${project.path}/AndroidManifest.xml" substring="android.permission.ACCESS_NETWORK_STATE"/>
 		</condition>
 	</target>
 	
@@ -93,19 +84,13 @@
 			depends="check-manifest-permission.INTERNET"
 			unless="permission.INTERNET">
 		<!-- backup existing AndroidManifest.xml -->
-		<copy file="AndroidManifest.xml" tofile="AndroidManifest.xml.orig.p2"/>
-		<xslt in="AndroidManifest.xml.orig.p2" out="AndroidManifest.xml" force="true">
-			<style>
-			  	<javaresource name="Couchbase/script/permission-INTERNET.xsl">
-			  		<classpath location="Couchbase.zip"/>
-			  	</javaresource>
-		  	</style>			
-		</xslt>
+		<copy file="${project.path}/AndroidManifest.xml" tofile="${project.path}/AndroidManifest.xml.orig.p2"/>
+		<xslt style="${couchbase.tmp.dir}/Couchbase/script/permission-INTERNET.xsl" in="${project.path}/AndroidManifest.xml.orig.p2" out="${project.path}/AndroidManifest.xml" force="true"/>
 	</target>		
 	
 	<target name="check-manifest-permission.INTERNET">
 		<condition property="permission.INTERNET">
-			<resourcecontains resource="${basedir}/AndroidManifest.xml" substring="android.permission.INTERNET"/>
+			<resourcecontains resource="${project.path}/AndroidManifest.xml" substring="android.permission.INTERNET"/>
 		</condition>
 	</target>
 	
@@ -113,19 +98,13 @@
 			depends="check-manifest-permission.WRITE_EXTERNAL_STORAGE"
 			unless="permission.WRITE_EXTERNAL_STORAGE">
 		<!-- backup existing AndroidManifest.xml -->
-		<copy file="AndroidManifest.xml" tofile="AndroidManifest.xml.orig.p3"/>
-		<xslt in="AndroidManifest.xml.orig.p3" out="AndroidManifest.xml" force="true">
-			<style>
-			  	<javaresource name="Couchbase/script/permission-WRITE_EXTERNAL_STORAGE.xsl">
-			  		<classpath location="Couchbase.zip"/>
-			  	</javaresource>
-		  	</style>		
-		</xslt>
+		<copy file="${project.path}/AndroidManifest.xml" tofile="${project.path}/AndroidManifest.xml.orig.p3"/>
+		<xslt style="${couchbase.tmp.dir}/Couchbase/script/permission-WRITE_EXTERNAL_STORAGE.xsl" in="${project.path}/AndroidManifest.xml.orig.p3" out="${project.path}/AndroidManifest.xml" force="true"/>
 	</target>		
 			
 	<target name="check-manifest-permission.WRITE_EXTERNAL_STORAGE">
 		<condition property="permission.WRITE_EXTERNAL_STORAGE">
-			<resourcecontains resource="${basedir}/AndroidManifest.xml" substring="android.permission.WRITE_EXTERNAL_STORAGE"/>
+			<resourcecontains resource="${project.path}/AndroidManifest.xml" substring="android.permission.WRITE_EXTERNAL_STORAGE"/>
 		</condition>
 	</target>
 	
@@ -134,28 +113,22 @@
 			depends="check-manifest-service"
 			unless="service.couch.exists">
 		<!-- backup existing AndroidManifest.xml -->
-		<copy file="AndroidManifest.xml" tofile="AndroidManifest.xml.orig.cs"/>
-		<xslt in="AndroidManifest.xml.orig.cs" out="AndroidManifest.xml" force="true">
-			<style>
-			  	<javaresource name="Couchbase/script/couchbase-service.xsl">
-			  		<classpath location="Couchbase.zip"/>
-			  	</javaresource>
-		  	</style>		
-		</xslt>
+		<copy file="${project.path}/AndroidManifest.xml" tofile="${project.path}/AndroidManifest.xml.orig.cs"/>
+		<xslt style="${couchbase.tmp.dir}/Couchbase/script/couchbase-service.xsl" in="${project.path}/AndroidManifest.xml.orig.cs" out="${project.path}/AndroidManifest.xml" force="true"/>
 	</target>		
 	
 	<target name="check-manifest-service">
 		<condition property="service.couch.exists">
-			<resourcecontains resource="${basedir}/AndroidManifest.xml" substring="com.couchbase.android.CouchbaseService"/>
+			<resourcecontains resource="${project.path}/AndroidManifest.xml" substring="com.couchbase.android.CouchbaseService"/>
 		</condition>
 	</target>
 	
 	<!-- Manifest -->
 	<target name="suggest-manifest" depends="suggest-manifest-permissions,suggest-manifest-service">
-		 <delete file="AndroidManifest.xml.orig.p1"/>
-		 <delete file="AndroidManifest.xml.orig.p2"/>
-		 <delete file="AndroidManifest.xml.orig.p3"/>
-		 <delete file="AndroidManifest.xml.orig.cs"/>	
+		 <delete file="${project.path}/AndroidManifest.xml.orig.p1"/>
+		 <delete file="${project.path}/AndroidManifest.xml.orig.p2"/>
+		 <delete file="${project.path}/AndroidManifest.xml.orig.p3"/>
+		 <delete file="${project.path}/AndroidManifest.xml.orig.cs"/>
 	</target>
 
 </project>

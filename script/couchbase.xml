@@ -1,14 +1,19 @@
 <project name="couchbase" default="manual">
 
-  <import>
-  	<javaresource name="Couchbase/script/couchbase-internal.xml">
-  		<classpath location="Couchbase.zip"/>
-  	</javaresource>
-  </import>
+	<target name="manual">
+		<!-- unpack the Couchbase.zip in a secure tmp folder -->
+		<tempfile property="couchbase.tmp.dir" destDir="${java.io.tmpdir}"/>
+		<mkdir dir="${couchbase.tmp.dir}"/>
+		<unzip dest="${couchbase.tmp.dir}" src="Couchbase.zip"/>
 
-  <target name="manual" depends="couchbase-internal.update-libaries,couchbase-internal.update-assets,couchbase-internal.update-classpath,couchbase-internal.suggest-manifest">
-  
-  </target>
+		<!-- run the ant target the in the build xml file inside the zip -->
+		<ant antfile="${couchbase.tmp.dir}/Couchbase/script/couchbase-internal.xml" target="manual">
+			<property name="project.path" value="${basedir}"/>
+			<property name="couchbase.tmp.dir" value="${couchbase.tmp.dir}"/>
+		</ant>
 
+		<!-- cleanup the tmp folder -->
+		<delete dir="${couchbase.tmp.dir}"/>
+	</target>
 
 </project>
