@@ -8,9 +8,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 
-import com.couchbase.android.ICouchbaseDelegate;
-import com.couchbase.android.ICouchbaseService;
-
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -18,7 +15,6 @@ import android.content.ServiceConnection;
 import android.content.res.AssetManager;
 import android.os.Environment;
 import android.os.IBinder;
-import android.os.RemoteException;
 
 /*
  * This is the minimal API for building against Android-Couchbase, its
@@ -141,12 +137,8 @@ public class CouchbaseMobile {
 	private final static ServiceConnection mConnection = new ServiceConnection() {
 		@Override
 		public void onServiceConnected(ComponentName className, final IBinder service) {
-			try {
-				couchbaseService = ICouchbaseService.Stub.asInterface(service);
+				couchbaseService = (ICouchbaseService)service;
 				couchbaseService.startCouchbase(couchbaseDelegate, releaseName);
-			} catch (RemoteException e) {
-				e.printStackTrace();
-			}
 		}
 
 		@Override

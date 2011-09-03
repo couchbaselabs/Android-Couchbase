@@ -18,13 +18,13 @@ Now that your project supports Couchbase, starting Cocuhbase is accomplished by 
 
 1.  Create an instance of ICouchbaseDelegate, you can implement these methods to respond to Couchbase events
 
-    private final ICouchbaseDelegate mCallback = new ICouchbaseDelegate.Stub() {
+    private final ICouchbaseDelegate mDelegate = new ICouchbaseDelegate() {
         @Override
         public void couchbaseStarted(String host, int port) {}
-
+    
         @Override
         public void installing(int completed, int total) {}
-
+    
         @Override
         public void exit(String error) {}
     };
@@ -52,7 +52,11 @@ Now that your project supports Couchbase, starting Cocuhbase is accomplished by 
 
 ## Examples
 
-For examples please look at https://github.com/couchbase/Android-EmptyApp
+For examples please look at:
+
+* https://github.com/couchbase/Android-EmptyApp
+* https://github.com/daleharvey/Android-MobileFuton
+* https://github.com/couchbaselabs/AndroidGrocerySync
 
 ## Join us
 

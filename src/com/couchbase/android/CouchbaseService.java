@@ -20,14 +20,12 @@ import java.util.regex.Pattern;
 
 import android.app.Service;
 import android.content.Intent;
+import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.os.RemoteException;
 import android.util.Log;
 
-import com.couchbase.android.ICouchbaseDelegate;
-import com.couchbase.android.ICouchbaseService;
 import com.google.ase.Exec;
 
 public class CouchbaseService extends Service {
@@ -63,30 +61,27 @@ public class CouchbaseService extends Service {
 	private final Handler mHandler = new Handler() {
 		@Override
 		public void handleMessage(Message msg) {
-			try {
-				switch (msg.what) {
-				case ERROR:
-					Exception e = (Exception) msg.obj;
-					StringWriter sw = new StringWriter();
-					e.printStackTrace(new PrintWriter(sw));
-					String stacktrace = sw.toString();
-					if (couchbaseDelegate != null) {
-						couchbaseDelegate.exit(stacktrace);
-					}
-					break;
-				case PROGRESS:
-					couchbaseDelegate.installing(msg.arg1, msg.arg2);
-					break;
-				case COMPLETE:
-					startCouchbaseService();
-					break;
-				case COUCHBASE_STARTED:
-					URL url = (URL) msg.obj;
-					couchbaseDelegate.couchbaseStarted(url.getHost(), url.getPort());
-					break;
+
+			switch (msg.what) {
+			case ERROR:
+				Exception e = (Exception) msg.obj;
+				StringWriter sw = new StringWriter();
+				e.printStackTrace(new PrintWriter(sw));
+				String stacktrace = sw.toString();
+				if (couchbaseDelegate != null) {
+					couchbaseDelegate.exit(stacktrace);
 				}
-			} catch (RemoteException e) {
-				e.printStackTrace();
+				break;
+			case PROGRESS:
+				couchbaseDelegate.installing(msg.arg1, msg.arg2);
+				break;
+			case COMPLETE:
+				startCouchbaseService();
+				break;
+			case COUCHBASE_STARTED:
+				URL url = (URL) msg.obj;
+				couchbaseDelegate.couchbaseStarted(url.getHost(), url.getPort());
+				break;
 			}
 		}
 	};
@@ -113,10 +108,10 @@ public class CouchbaseService extends Service {
 	/*
 	 * implements the callbacks that clients can call into the couchbase service
 	 */
-	public class CouchbaseServiceImpl extends ICouchbaseService.Stub {
+	public class CouchbaseServiceImpl extends Binder implements ICouchbaseService {
 
 		@Override
-		public void startCouchbase(ICouchbaseDelegate cb, final String pkg) throws RemoteException {
+		public void startCouchbase(ICouchbaseDelegate cb, final String pkg) {
 			couchbaseDelegate = cb;
 			if (!CouchbaseInstaller.checkInstalled(pkg)) {
 				installCouchbase(pkg);
@@ -132,13 +127,13 @@ public class CouchbaseService extends Service {
 		/*
 		 */
 		@Override
-		public void stopCouchbase() throws RemoteException {
+		public void stopCouchbase() {
 			stop();
 		}
 	};
 
 	/* once couchbase has started we need to notify the waiting client */
-	void couchbaseStarted() throws RemoteException {
+	void couchbaseStarted() {
 		couchbaseDelegate.couchbaseStarted(url.getHost(), url.getPort());
 	}
 

@@ -29,7 +29,7 @@ NOTE: You do not need the source of this repository to use Mobile Couchbase in y
 1.  Create a new Android project or select an existing project
 
 2.  Download the Android-Couchbase.zip
-  - https://github.com/downloads/couchbase/Android-Couchbase/Android-Couchbase.zip
+  - http://files.couchbase.com/developer-previews/mobile/android/android-couchbase-dp.zip
 
 3.  Extract Android-Couchbase.zip, you will see 3 files
   - Couchbase.zip
@@ -48,7 +48,7 @@ Now that your project supports Couchbase, starting Cocuhbase is accomplished by 
 
 1.  Create an instance of ICouchbaseDelegate, you can implement these methods to respond to Couchbase events
 <pre>    
-    private final ICouchbaseDelegate mCallback = new ICouchbaseDelegate.Stub() {
+    private final ICouchbaseDelegate mDelegate = new ICouchbaseDelegate() {
         @Override
         public void couchbaseStarted(String host, int port) {}
     
@@ -86,7 +86,11 @@ Now that your project supports Couchbase, starting Cocuhbase is accomplished by 
 
 ## Examples
 
-For examples please look at https://github.com/couchbase/Android-EmptyApp
+For examples please look at:
+
+* https://github.com/couchbase/Android-EmptyApp
+* https://github.com/daleharvey/Android-MobileFuton
+* https://github.com/couchbaselabs/AndroidGrocerySync
 
 ## Build information
 

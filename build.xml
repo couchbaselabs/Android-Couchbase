@@ -81,7 +81,15 @@
     <path id="android.libraries.jars"><path refid="project.libraries.jars" /></path>
 
 	<target name="couchbase-jar" depends="compile">
-		<jar destfile="bin/couchbase.jar" basedir="bin/classes" excludes="**/R*"/>
+		<jar destfile="bin/couchbase.jar">
+			<fileset dir="bin/classes">
+				<include name="**/*"/>
+				<exclude name="**/R*"/>
+			</fileset>
+			<fileset dir="src">
+				<include name="**/*"/>
+			</fileset>
+		</jar>
 	</target>
 
 	<target name="dist" depends="couchbase-jar">
