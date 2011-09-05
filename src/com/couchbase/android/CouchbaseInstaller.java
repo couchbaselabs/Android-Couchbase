@@ -22,10 +22,24 @@ import android.util.Log;
 
 public class CouchbaseInstaller {
 
+	/**
+	 * Utility function to return the path to a file where we record the files installed
+	 *
+	 * @return the path to the index file
+	 */
 	public static String indexFile() {
 		return CouchbaseMobile.dataPath() + "/installedfiles.index";
 	}
 
+	/**
+	 * Checks to see if the requested package is already installed, removes old installations
+	 * and installs the package if necessary
+	 *
+	 * @param pkg the identifier of the package to be installed
+	 * @param handler the handler connecting the installation thread with the application main thread
+	 * @param service service reference to the Couchbase service performing the installation
+	 * @throws IOException
+	 */
 	public static void doInstall(String pkg, Handler handler, CouchbaseService service)
 		throws IOException {
 
@@ -59,8 +73,13 @@ public class CouchbaseInstaller {
 		handler.sendMessage(done);
 	}
 
-	/*
-	 * This fetches a given package from amazon and tarbombs it to the filsystem
+	/**
+	 * This fetches a given package from the assets directory and tarbombs it to the filsystem
+	 *
+	 * @param pkg the identifier of the package to be installed
+	 * @param handler the handler connecting the installation thread with the application main thread
+	 * @param service reference to the Couchbase service performing the installation
+	 * @throws IOException
 	 */
 	private static void installPackage(String pkg, Handler handler, CouchbaseService service)
 			throws IOException {
@@ -176,7 +195,7 @@ public class CouchbaseInstaller {
 		iLOWriter.close();
 
 		String[][] replacements = new String[][]{
-				{"%app_name%", CouchbaseMobile.appNamespace},
+				{"%app_name%", CouchbaseMobile.getAppNamespace()},
 				{"%sdk_int%", Integer.toString(android.os.Build.VERSION.SDK_INT)}
 		};
 
@@ -193,9 +212,12 @@ public class CouchbaseInstaller {
 		replace(CouchbaseMobile.dataPath() + "/couchdb/etc/couchdb/android.default.ini", replacements);
 	}
 
-	/*
+	/**
 	 * Verifies that requested version of Couchbase is installed by checking for the presence of
 	 * the package files we write upon installation in the data directory of the app.
+	 *
+	 * @param pkg version string identifying the pckage
+	 * @return true if the package is installed, false otherwise
 	 */
 	public static boolean checkInstalled(String pkg) {
 
@@ -207,8 +229,11 @@ public class CouchbaseInstaller {
 		return true;
 	}
 
-	/*
+	/**
 	 * Recursively delete directory
+	 *
+	 * @param dir the directory to delete
+	 * @return success/failure
 	 */
 	public static Boolean deleteDirectory(File dir) {
 		if (dir.isDirectory()) {
@@ -223,26 +248,31 @@ public class CouchbaseInstaller {
 		return dir.delete();
 	}
 
-    static void replace(String fileName, String[][] replacements) {
-        try {
-        	File file = new File(fileName);
-        	BufferedReader reader = new BufferedReader(new FileReader(file));
-        	String line = "", content = "";
-        	while((line = reader.readLine()) != null) {
-        		content += line + "\n";
-        	}
+	/**
+	 * Utilty to process a file line by line, replacing strings with values
+	 *
+	 * @param fileName the name of the file to process
+	 * @param replacements array of 2 element string arrays, 0 is string to match, 1 is replacement
+	 * @throws IOException
+	 */
+	static void replace(String fileName, String[][] replacements)
+			throws IOException {
+		File file = new File(fileName);
+		BufferedReader reader = new BufferedReader(new FileReader(file));
+		String line = "", content = "";
+		while ((line = reader.readLine()) != null) {
+			content += line + "\n";
+		}
 
-        	for (int i = 0; i < replacements.length; i++) {
-        		content = content.replaceAll(replacements[i][0], replacements[i][1]);
-        	}
-        	reader.close();
-        	FileWriter writer = new FileWriter(fileName);
-        	writer.write(content);
-        	writer.close();
-        	Runtime.getRuntime().exec("chmod 755 " + fileName);
-        } catch (IOException e) {
-        	e.printStackTrace();
-        }
-    }
+		for (int i = 0; i < replacements.length; i++) {
+			content = content
+					.replaceAll(replacements[i][0], replacements[i][1]);
+		}
+		reader.close();
+		FileWriter writer = new FileWriter(fileName);
+		writer.write(content);
+		writer.close();
+		Runtime.getRuntime().exec("chmod 755 " + fileName);
+	}
 
 }

@@ -1,10 +1,6 @@
 package com.couchbase.android;
 
 import java.io.BufferedReader;
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
@@ -26,37 +22,84 @@ import android.os.IBinder;
 import android.os.Message;
 import android.util.Log;
 
-import com.google.ase.Exec;
+/**
+ * Implementation of the Couchbase service
+ *
+ */
 
 public class CouchbaseService extends Service {
 
-	/*
-	 * Contants used to communnicate between the Couchbase Service
-	 * and this thread
+	/**
+	 * Couchbase encountered an error
 	 */
-	public final static int ERROR = 0;
-	public final static int PROGRESS = 1;
-	public final static int COMPLETE = 2;
-	public final static int COUCHBASE_STARTED = 3;
-	public final static int INSTALLING = 4;
+	public static final int ERROR = 0;
 
-	/* The url Couchbase has started on */
-	public URL url;
+	/**
+	 * Couchbase installer has made progress
+	 */
+	public static final int PROGRESS = 1;
 
-	/* Has Couchbase started */
-	public boolean couchbaseStarted = false;
+	/**
+	 * Couchbase installation complete
+	 */
+	public static final int COMPLETE = 2;
 
-	/* This is how we talk to the app that started Couchbase */
+	/**
+	 * Couchbase startup complete
+	 */
+	public static final int COUCHBASE_STARTED = 3;
+
+	/**
+	 * System shell
+	 */
+	public static final String shell = "/system/bin/sh";
+
+	/**
+	 * The URL Couchbase is running on
+	 */
+	private URL url;
+
+	/**
+	 * Has Couchbase started
+	 */
+	private boolean couchbaseStarted = false;
+
+	/**
+	 * Is Couchbase Stopping
+	 */
+	private boolean couchbaseStopping = false;
+
+	/**
+	 * Delegate used to notify the client of events in the service
+	 */
 	private ICouchbaseDelegate couchbaseDelegate;
 
-	private Integer pid;
+	/**
+	 * Couchbase process
+	 */
+	private Process process;
+
+	/**
+	 * Mapped to Couchbase process stdin
+	 */
 	private PrintStream out;
+
+	/**
+	 * Mapped to Couchbase process stdout
+	 */
 	private BufferedReader in;
 
-	/*
-	 * Couchbase runs in a seperate thread, have the communication run
-	 * through our own handler so the app doesnt need to create a new
-	 * handler to deal with touching the UI from a different thread
+	/**
+	 * Mapped to Couchbase process stderr
+	 */
+	private BufferedReader err;
+
+	/**
+	 *	A handler to pass messages between Couchbase main thread, Couchbase installer thread, and application main thread
+	 *
+	 *  Couchbase runs in a seperate thread, have the communication run
+	 *  through our own handler so the app doesnt need to create a new
+	 *  handler to deal with touching the UI from a different thread
 	 */
 	private final Handler mHandler = new Handler() {
 		@Override
@@ -64,12 +107,17 @@ public class CouchbaseService extends Service {
 
 			switch (msg.what) {
 			case ERROR:
-				Exception e = (Exception) msg.obj;
-				StringWriter sw = new StringWriter();
-				e.printStackTrace(new PrintWriter(sw));
-				String stacktrace = sw.toString();
-				if (couchbaseDelegate != null) {
-					couchbaseDelegate.exit(stacktrace);
+				if(msg.obj instanceof Exception) {
+					Exception e = (Exception) msg.obj;
+					StringWriter sw = new StringWriter();
+					e.printStackTrace(new PrintWriter(sw));
+					String stacktrace = sw.toString();
+					if (couchbaseDelegate != null) {
+						couchbaseDelegate.exit(stacktrace);
+					}
+				}
+				else if(msg.obj instanceof String){
+					couchbaseDelegate.exit((String)msg.obj);
 				}
 				break;
 			case PROGRESS:
@@ -86,7 +134,7 @@ public class CouchbaseService extends Service {
 		}
 	};
 
-	/*
+	/**
 	 * This is called when the service is destroyed
 	 */
 	@Override
@@ -97,7 +145,7 @@ public class CouchbaseService extends Service {
 		couchbaseDelegate = null;
 	}
 
-	/*
+	/**
 	 * This is called called on the initial service binding
 	 */
 	@Override
@@ -105,8 +153,9 @@ public class CouchbaseService extends Service {
 		return new CouchbaseServiceImpl();
 	}
 
-	/*
-	 * implements the callbacks that clients can call into the couchbase service
+	/**
+	 * An implementation of the Couchbase service exposed to clients wrapping around this implementation
+	 *
 	 */
 	public class CouchbaseServiceImpl extends Binder implements ICouchbaseService {
 
@@ -132,12 +181,18 @@ public class CouchbaseService extends Service {
 		}
 	};
 
-	/* once couchbase has started we need to notify the waiting client */
+	/**
+	 * Nofity the delegate that Couchbase has started
+	 */
 	void couchbaseStarted() {
 		couchbaseDelegate.couchbaseStarted(url.getHost(), url.getPort());
 	}
 
-	/* Install Couchbase in a seperate thread */
+	/**
+	 * Install Couchbase in a separate thrad
+	 *
+	 * @param pkg the package identifier to verify and install if necessary
+	 */
 	private void installCouchbase(final String pkg) {
 		final CouchbaseService service = this;
 		new Thread() {
@@ -145,17 +200,17 @@ public class CouchbaseService extends Service {
 			public void run() {
 				try {
 					CouchbaseInstaller.doInstall(pkg, mHandler, service);
-				} catch (FileNotFoundException e) {
-					Message.obtain(mHandler, CouchbaseService.ERROR, e).sendToTarget();
-					e.printStackTrace();
 				} catch (IOException e) {
-					e.printStackTrace();
+					Log.v(CouchbaseMobile.TAG, "Error installing Couchbase", e);
+					Message.obtain(mHandler, CouchbaseService.ERROR, e).sendToTarget();
 				}
 			}
 		}.start();
 	}
 
-	/* Start the couchbase process, run in a seperate thread */
+	/**
+	 * Start the Couchbase service in a separate thread
+	 */
 	void startCouchbaseService() {
 
 		String path = CouchbaseMobile.dataPath();
@@ -169,56 +224,91 @@ public class CouchbaseService extends Service {
 				path + "/couchdb/etc/couchdb/local.ini",
 				path + "/couchdb/etc/couchdb/android.default.ini"};
 
-		ArrayList<String> args = new ArrayList<String>(Arrays.asList(plainArgs));
-		for (String iniPath : CouchbaseMobile.customIniFiles) {
-			args.add(iniPath);
+		//build up the command as an array of strings
+		ArrayList<String> command = new ArrayList<String>();
+		command.add(shell);
+		command.add(cmd);
+		command.addAll(Arrays.asList(plainArgs));
+		for (String iniPath : CouchbaseMobile.getCustomIniFiles()) {
+			command.add(iniPath);
 		}
+		command.add(path + "/couchdb/etc/couchdb/overrides.ini -s couch");
 
-		args.add(path + "/couchdb/etc/couchdb/overrides.ini -s couch");
+		ProcessBuilder pb = new ProcessBuilder();
+		pb.command(command);
 
-		String shell = "/system/bin/sh";
-		String couchbin = join(args, " ");
+		try {
+			//start the process
+			process = pb.start();
 
-		int[] pidbuffer = new int[1];
-		final FileDescriptor fd = Exec.createSubprocess(shell, cmd, couchbin, pidbuffer);
-		pid = pidbuffer[0];
-		out = new PrintStream(new FileOutputStream(fd), true);
-		in = new BufferedReader(new InputStreamReader(new FileInputStream(fd)));
+			//connect the streams
+			in = new BufferedReader(new InputStreamReader(process.getInputStream()), 8192);
+			out = new PrintStream(process.getOutputStream());
+			err = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				try {
-					while (fd.valid()) {
-						String line = in.readLine();
-						Log.v(CouchbaseMobile.TAG, line);
-						if (line.contains("has started on")) {
-							couchbaseStarted = true;
-							url = new URL(matchURLs(line).get(0));
-							Message.obtain(mHandler, CouchbaseService.COUCHBASE_STARTED, url)
-								.sendToTarget();
+			new Thread(new Runnable() {
+				@Override
+				public void run() {
+					try {
+						String line;
+						while ((line = in.readLine()) != null) {
+							Log.v(CouchbaseMobile.TAG, line);
+							if (line.contains("has started on")) {
+								couchbaseStarted = true;
+								url = new URL(matchURLs(line).get(0));
+								Message.obtain(mHandler, CouchbaseService.COUCHBASE_STARTED, url)
+									.sendToTarget();
+							}
+						}
+					} catch (Exception e) {
+						Log.v(CouchbaseMobile.TAG, "Couchbase has stopped unexpectedly", e);
+						Message.obtain(mHandler, CouchbaseService.ERROR, e).sendToTarget();
+						couchbaseStopping = true;
+					}
+					finally {
+						if(!couchbaseStopping) {
+							//detect an unplanned shutdown that was not caught by exception
+							Log.v(CouchbaseMobile.TAG, "Couchbase has stopped unexpectedly");
+							Message.obtain(mHandler, CouchbaseService.ERROR, "Couchbase has stopped unexpectedly").sendToTarget();
+						}
+						try {
+							out.close();
+							in.close();
+							err.close();
+						} catch (IOException e) {
+							Log.v(CouchbaseMobile.TAG, "Error closing streams", e);
+						}
+						finally {
+							couchbaseStarted = false;
+							couchbaseStopping = false;
+							stopSelf();
 						}
 					}
-				} catch (Exception e) {
-					Log.v(CouchbaseMobile.TAG, "Couchbase has stopped unexpectedly");
-					Message.obtain(mHandler, CouchbaseService.ERROR, e).sendToTarget();
 				}
-			}
-		}).start();
-	}
+			}).start();
 
-	/* Stop the Couch process */
-	private void stop() {
-		try {
-			out.close();
-			android.os.Process.killProcess(pid);
-			in.close();
-		} catch (IOException e) {
-			e.printStackTrace();
+
+		} catch (IOException ioe) {
+			Message.obtain(mHandler, CouchbaseService.ERROR, ioe).sendToTarget();
 		}
-		couchbaseStarted = false;
 	}
 
+	/**
+	 * Stop the Couchbase process
+	 */
+	private void stop() {
+		if(couchbaseStarted && !couchbaseStopping) {
+			couchbaseStopping = true;
+			process.destroy();
+		}
+	}
+
+	/**
+	 * Utility function to parse a string of text for URLs
+	 *
+	 * @param text the input text to search
+	 * @return array of strings that are URLs
+	 */
 	private ArrayList<String> matchURLs(String text) {
 		ArrayList<String> links = new ArrayList<String>();
 		String regex = "\\(?\\b(http://|www[.])[-A-Za-z0-9+&@#/%?=~_()|!:,.;]*[-A-Za-z0-9+&@#/%=~_()|]";
@@ -229,6 +319,13 @@ public class CouchbaseService extends Service {
 		return links;
 	}
 
+	/**
+	 * Utility function to join a collection of strings with a delimiter
+	 *
+	 * @param s collection of strings to join
+	 * @param delimiter string to insert between joined strings
+	 * @return the joined string
+	 */
 	public static String join(Collection<String> s, String delimiter) {
 		StringBuffer buffer = new StringBuffer();
 		Iterator<String> iter = s.iterator();

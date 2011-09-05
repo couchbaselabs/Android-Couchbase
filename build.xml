@@ -126,4 +126,16 @@
 		</zip>
 	</target>
 
+	<target name="javadoc">
+		 <javadoc
+		           destdir="bin/docs"
+		           windowtitle="Android Couchbase">
+
+		    <packageset dir="src" defaultexcludes="yes">
+		      <include name="com/couchbase/android/**"/>
+		    </packageset>
+
+		 </javadoc>
+	</target>
+
 </project>
