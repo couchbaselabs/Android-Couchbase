@@ -289,6 +289,7 @@ public class CouchbaseService extends Service {
 
 
 		} catch (IOException ioe) {
+			Log.v(CouchbaseMobile.TAG, "Failed to start Couchbase process", ioe);
 			Message.obtain(mHandler, CouchbaseService.ERROR, ioe).sendToTarget();
 		}
 	}

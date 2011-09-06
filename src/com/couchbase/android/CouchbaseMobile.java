@@ -1,7 +1,6 @@
 package com.couchbase.android;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -149,12 +148,8 @@ public class CouchbaseMobile {
 	 */
 	public void copyIniFile(String fileName) throws IOException {
 		File destination = new File(dataPath() + "/user_data/" + fileName);
-		try {
-			copyIffNotExists(fileName, destination);
-			customIniFiles.add(destination.getAbsolutePath());
-		} catch(FileNotFoundException e) {
-			throw e;
-		}
+		copyIffNotExists(fileName, destination);
+		customIniFiles.add(destination.getAbsolutePath());
 	}
 
 	/**
