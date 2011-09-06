@@ -195,20 +195,13 @@ public class CouchbaseInstaller {
 		iLOWriter.close();
 
 		String[][] replacements = new String[][]{
-				{"%app_name%", CouchbaseMobile.getAppNamespace()},
+				{"%couch_data_dir%", CouchbaseMobile.externalPath()},
+				{"%couch_installation_dir%", CouchbaseMobile.dataPath()},
 				{"%sdk_int%", Integer.toString(android.os.Build.VERSION.SDK_INT)}
 		};
 
-		replace(CouchbaseMobile.dataPath() + "/erlang/erts-5.8.5/bin/start", replacements);
-		replace(CouchbaseMobile.dataPath() + "/erlang/erts-5.8.5/bin/erl", replacements);
-		replace(CouchbaseMobile.dataPath() + "/erlang/bin/start", replacements);
-		replace(CouchbaseMobile.dataPath() + "/erlang/bin/erl", replacements);
-		replace(CouchbaseMobile.dataPath() + "/couchdb/lib/couchdb/erlang/lib/couch/ebin/couch.app", replacements);
-		replace(CouchbaseMobile.dataPath() + "/couchdb/lib/couchdb/erlang/lib/couch/priv/lib/couch_icu_driver.la", replacements);
-		replace(CouchbaseMobile.dataPath() + "/couchdb/bin/couchjs", replacements);
 		replace(CouchbaseMobile.dataPath() + "/couchdb/bin/couchjs_wrapper", replacements);
 		replace(CouchbaseMobile.dataPath() + "/couchdb/bin/couchdb_wrapper", replacements);
-		replace(CouchbaseMobile.dataPath() + "/couchdb/etc/couchdb/default.ini", replacements);
 		replace(CouchbaseMobile.dataPath() + "/couchdb/etc/couchdb/android.default.ini", replacements);
 	}
 
