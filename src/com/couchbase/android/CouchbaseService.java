@@ -323,7 +323,7 @@ public class CouchbaseService extends Service {
 	/**
 	 * Utility function to join a collection of strings with a delimiter
 	 *
-	 * @param s collection of strings to join
+	 * @param a collection of strings to join
 	 * @param delimiter string to insert between joined strings
 	 * @return the joined string
 	 */
