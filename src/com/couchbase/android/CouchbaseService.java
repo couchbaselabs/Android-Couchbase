@@ -202,18 +202,7 @@ public class CouchbaseService extends Service {
 	 * @param pkg the package identifier to verify and install if necessary
 	 */
 	private void installCouchbase(final String pkg) {
-		final CouchbaseService service = this;
-		new Thread() {
-			@Override
-			public void run() {
-				try {
-					CouchbaseInstaller.doInstall(pkg, mHandler, service);
-				} catch (IOException e) {
-					Log.v(CouchbaseMobile.TAG, "Error installing Couchbase", e);
-					Message.obtain(mHandler, CouchbaseService.ERROR, e).sendToTarget();
-				}
-			}
-		}.start();
+		new CouchbaseInstaller(pkg, mHandler, this).start();
 	}
 
 	/**

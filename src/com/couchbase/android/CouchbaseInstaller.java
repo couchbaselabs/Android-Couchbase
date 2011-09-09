@@ -20,7 +20,61 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
-public class CouchbaseInstaller {
+/**
+ * A thread which can install the requested version of Couchbase
+ *
+ */
+public class CouchbaseInstaller extends Thread {
+
+	/**
+	 * The name of the package to install
+	 */
+	private String pkg;
+
+	/**
+	 * The handler for communicating with the service thread
+	 */
+	private Handler handler;
+
+	/**
+	 * The Couchbase service
+	 */
+	private CouchbaseService service;
+
+	/**
+	 * Has this installation been cancelled
+	 */
+	private boolean cancelled = false;
+
+	/**
+	 * Create a new Thread to install Couchbase
+	 *
+	 * @param pkg the package to install
+	 * @param handler the handler for communicating with the service
+	 * @param service the Couchbase service
+	 */
+	public CouchbaseInstaller(String pkg, Handler handler, CouchbaseService service) {
+		this.pkg = pkg;
+		this.handler = handler;
+		this.service = service;
+	}
+
+	/**
+	 * Cancel this installation
+	 */
+	public void cancelInstallation() {
+		cancelled = true;
+	}
+
+	@Override
+	public void run() {
+		try {
+			doInstall();
+		} catch (IOException e) {
+			Log.v(CouchbaseMobile.TAG, "Error installing Couchbase", e);
+			Message.obtain(handler, CouchbaseService.ERROR, e).sendToTarget();
+		}
+	}
 
 	/**
 	 * Utility function to return the path to a file where we record the files installed
@@ -40,7 +94,7 @@ public class CouchbaseInstaller {
 	 * @param service service reference to the Couchbase service performing the installation
 	 * @throws IOException
 	 */
-	public static void doInstall(String pkg, Handler handler, CouchbaseService service)
+	public void doInstall()
 		throws IOException {
 
 		if(!checkInstalled(pkg)) {
@@ -65,7 +119,7 @@ public class CouchbaseInstaller {
 		        deleteDirectory(erlangDir);
 		    }
 
-			installPackage(pkg, handler, service);
+			installPackage();
 		}
 
 		Message done = Message.obtain();
@@ -81,7 +135,7 @@ public class CouchbaseInstaller {
 	 * @param service reference to the Couchbase service performing the installation
 	 * @throws IOException
 	 */
-	private static void installPackage(String pkg, Handler handler, CouchbaseService service)
+	private void installPackage()
 			throws IOException {
 
 		Log.v(CouchbaseMobile.TAG, "Installing " + pkg);
@@ -112,7 +166,7 @@ public class CouchbaseInstaller {
 		float filesInArchive = 0;
 		float filesUnpacked = 0;
 
-		while ((e = tarstream.getNextTarEntry()) != null) {
+		while ((e = tarstream.getNextTarEntry()) != null && (!cancelled)) {
 
 			String fullName = CouchbaseMobile.dataPath() + "/" + e.getName();
 			// Obtain count of files in this archive so that we can indicate install progress
@@ -172,37 +226,40 @@ public class CouchbaseInstaller {
 		tarstream.close();
 		instream.close();
 
-		FileWriter iLOWriter = new FileWriter(CouchbaseMobile.dataPath() + "/" + pkg + ".installedfiles");
-		for (String file : installedfiles) {
-			iLOWriter.write(file+"\n");
+		//only proceed if we haven't been canelled
+		if(!cancelled) {
+			FileWriter iLOWriter = new FileWriter(CouchbaseMobile.dataPath() + "/" + pkg + ".installedfiles");
+			for (String file : installedfiles) {
+				iLOWriter.write(file+"\n");
+			}
+			iLOWriter.close();
+
+			/*
+			 * Write out full list of all installed files + file modes (the data in this file
+			 * only represents the most recently installed release)
+			 */
+			iLOWriter = new FileWriter(indexFile());
+
+			for (String file : allInstalledFiles) {
+				iLOWriter.write(
+						allInstalledFileTypes.get(file).toString() + " " +
+								allInstalledFileModes.get(file).toString() + " " +
+								file + " " +
+								allInstalledLinks.get(file) + "\n");
+			}
+
+			iLOWriter.close();
+
+			String[][] replacements = new String[][]{
+					{"%couch_data_dir%", CouchbaseMobile.externalPath()},
+					{"%couch_installation_dir%", CouchbaseMobile.dataPath()},
+					{"%sdk_int%", Integer.toString(android.os.Build.VERSION.SDK_INT)}
+			};
+
+			replace(CouchbaseMobile.dataPath() + "/couchdb/bin/couchjs_wrapper", replacements);
+			replace(CouchbaseMobile.dataPath() + "/couchdb/bin/couchdb_wrapper", replacements);
+			replace(CouchbaseMobile.dataPath() + "/couchdb/etc/couchdb/android.default.ini", replacements);
 		}
-		iLOWriter.close();
-
-		/*
-		 * Write out full list of all installed files + file modes (the data in this file
-		 * only represents the most recently installed release)
-		 */
-		iLOWriter = new FileWriter(indexFile());
-
-		for (String file : allInstalledFiles) {
-			iLOWriter.write(
-					allInstalledFileTypes.get(file).toString() + " " +
-							allInstalledFileModes.get(file).toString() + " " +
-							file + " " +
-							allInstalledLinks.get(file) + "\n");
-		}
-
-		iLOWriter.close();
-
-		String[][] replacements = new String[][]{
-				{"%couch_data_dir%", CouchbaseMobile.externalPath()},
-				{"%couch_installation_dir%", CouchbaseMobile.dataPath()},
-				{"%sdk_int%", Integer.toString(android.os.Build.VERSION.SDK_INT)}
-		};
-
-		replace(CouchbaseMobile.dataPath() + "/couchdb/bin/couchjs_wrapper", replacements);
-		replace(CouchbaseMobile.dataPath() + "/couchdb/bin/couchdb_wrapper", replacements);
-		replace(CouchbaseMobile.dataPath() + "/couchdb/etc/couchdb/android.default.ini", replacements);
 	}
 
 	/**
