@@ -117,18 +117,24 @@ public class CouchbaseService extends Service {
 					}
 				}
 				else if(msg.obj instanceof String){
-					couchbaseDelegate.exit((String)msg.obj);
+					if (couchbaseDelegate != null) {
+						couchbaseDelegate.exit((String)msg.obj);
+					}
 				}
 				break;
 			case PROGRESS:
-				couchbaseDelegate.installing(msg.arg1, msg.arg2);
+				if (couchbaseDelegate != null) {
+					couchbaseDelegate.installing(msg.arg1, msg.arg2);
+				}
 				break;
 			case COMPLETE:
 				startCouchbaseService();
 				break;
 			case COUCHBASE_STARTED:
 				URL url = (URL) msg.obj;
-				couchbaseDelegate.couchbaseStarted(url.getHost(), url.getPort());
+				if (couchbaseDelegate != null) {
+					couchbaseDelegate.couchbaseStarted(url.getHost(), url.getPort());
+				}
 				break;
 			}
 		}
@@ -185,7 +191,9 @@ public class CouchbaseService extends Service {
 	 * Nofity the delegate that Couchbase has started
 	 */
 	void couchbaseStarted() {
-		couchbaseDelegate.couchbaseStarted(url.getHost(), url.getPort());
+		if (couchbaseDelegate != null) {
+			couchbaseDelegate.couchbaseStarted(url.getHost(), url.getPort());
+		}
 	}
 
 	/**
