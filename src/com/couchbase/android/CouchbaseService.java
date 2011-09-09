@@ -95,6 +95,16 @@ public class CouchbaseService extends Service {
 	private BufferedReader err;
 
 	/**
+	 * Thread responsible for installing Couchbase
+	 */
+	private CouchbaseInstaller couchbaseInstallThread;
+
+	/**
+	 * Thread responsible for communicating with Couchbase process
+	 */
+	private Thread couchbaseRunThread;
+
+	/**
 	 *	A handler to pass messages between Couchbase main thread, Couchbase installer thread, and application main thread
 	 *
 	 *  Couchbase runs in a seperate thread, have the communication run
@@ -128,6 +138,7 @@ public class CouchbaseService extends Service {
 				}
 				break;
 			case COMPLETE:
+				couchbaseInstallThread = null;
 				startCouchbaseService();
 				break;
 			case COUCHBASE_STARTED:
@@ -145,9 +156,7 @@ public class CouchbaseService extends Service {
 	 */
 	@Override
 	public void onDestroy() {
-		if (couchbaseStarted) {
-			stop();
-		}
+		stop();
 		couchbaseDelegate = null;
 	}
 
@@ -202,7 +211,8 @@ public class CouchbaseService extends Service {
 	 * @param pkg the package identifier to verify and install if necessary
 	 */
 	private void installCouchbase(final String pkg) {
-		new CouchbaseInstaller(pkg, mHandler, this).start();
+		couchbaseInstallThread = new CouchbaseInstaller(pkg, mHandler, this);
+		couchbaseInstallThread.start();
 	}
 
 	/**
@@ -243,7 +253,7 @@ public class CouchbaseService extends Service {
 			out = new PrintStream(process.getOutputStream());
 			err = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 
-			new Thread(new Runnable() {
+			couchbaseRunThread = new Thread(new Runnable() {
 				@Override
 				public void run() {
 					try {
@@ -277,12 +287,12 @@ public class CouchbaseService extends Service {
 						}
 						finally {
 							couchbaseStarted = false;
-							couchbaseStopping = false;
 							stopSelf();
 						}
 					}
 				}
-			}).start();
+			});
+			couchbaseRunThread.start();
 
 
 		} catch (IOException ioe) {
@@ -294,12 +304,36 @@ public class CouchbaseService extends Service {
 	/**
 	 * Stop the Couchbase process
 	 */
-	private void stop() {
-		if(couchbaseStarted && !couchbaseStopping) {
-			couchbaseStopping = true;
-			process.destroy();
-		}
-	}
+    private void stop() {
+        if(!couchbaseStopping) {
+                couchbaseStopping = true;
+
+                try {
+                        //if installation is running, cancel it and wait for it to finish
+                        if(couchbaseInstallThread != null) {
+                                couchbaseInstallThread.cancelInstallation();
+                                couchbaseInstallThread.join();
+                        }
+
+                        //if couchbase process is running kill the process
+                        if(process != null) {
+                                process.destroy();
+                                process = null;
+                        }
+
+                        //now wait for the thread to finish
+                        if(couchbaseRunThread != null) {
+                                couchbaseRunThread.join();
+                                couchbaseRunThread = null;
+                        }
+                } catch (InterruptedException e) {
+                        Log.v(CouchbaseMobile.TAG, "Interrupted while waiting for threads to die");
+                }
+                finally {
+                        couchbaseStopping = false;
+                }
+        }
+}
 
 	/**
 	 * Utility function to parse a string of text for URLs
