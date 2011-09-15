@@ -1,9 +1,7 @@
 package com.couchbase.android;
 
-import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URL;
@@ -11,8 +9,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import android.app.Service;
 import android.content.Intent;
@@ -57,7 +53,7 @@ public class CouchbaseService extends Service {
 	/**
 	 * The URL Couchbase is running on
 	 */
-	private URL url;
+	private static URL url;
 
 	/**
 	 * Has Couchbase started
@@ -75,26 +71,6 @@ public class CouchbaseService extends Service {
 	private ICouchbaseDelegate couchbaseDelegate;
 
 	/**
-	 * Couchbase process
-	 */
-	private Process process;
-
-	/**
-	 * Mapped to Couchbase process stdin
-	 */
-	private PrintStream out;
-
-	/**
-	 * Mapped to Couchbase process stdout
-	 */
-	private BufferedReader in;
-
-	/**
-	 * Mapped to Couchbase process stderr
-	 */
-	private BufferedReader err;
-
-	/**
 	 * Thread responsible for installing Couchbase
 	 */
 	private CouchbaseInstaller couchbaseInstallThread;
@@ -102,7 +78,7 @@ public class CouchbaseService extends Service {
 	/**
 	 * Thread responsible for communicating with Couchbase process
 	 */
-	private Thread couchbaseRunThread;
+	private static Thread couchbaseRunThread;
 
 	/**
 	 *	A handler to pass messages between Couchbase main thread, Couchbase installer thread, and application main thread
@@ -139,12 +115,20 @@ public class CouchbaseService extends Service {
 				break;
 			case COMPLETE:
 				couchbaseInstallThread = null;
-				startCouchbaseService();
+				if(couchbaseRunThread == null)
+					startCouchbaseService();
+				else
+					if (couchbaseDelegate != null) {
+						couchbaseDelegate.couchbaseStarted(url.getHost(),
+								url.getPort());
+					}
 				break;
 			case COUCHBASE_STARTED:
-				URL url = (URL) msg.obj;
+				url = (URL) msg.obj;
+				
 				if (couchbaseDelegate != null) {
-					couchbaseDelegate.couchbaseStarted(url.getHost(), url.getPort());
+					couchbaseDelegate.couchbaseStarted(url.getHost(),
+							url.getPort());
 				}
 				break;
 			}
@@ -156,7 +140,6 @@ public class CouchbaseService extends Service {
 	 */
 	@Override
 	public void onDestroy() {
-		stop();
 		couchbaseDelegate = null;
 	}
 
@@ -183,7 +166,13 @@ public class CouchbaseService extends Service {
 				if (couchbaseStarted == true) {
 					couchbaseStarted();
 				} else {
-					startCouchbaseService();
+					if(couchbaseRunThread == null)
+						startCouchbaseService();
+					else
+						if (couchbaseDelegate != null) {
+							couchbaseDelegate.couchbaseStarted(url.getHost(),
+									url.getPort());
+						}
 				}
 			}
 		}
@@ -192,7 +181,7 @@ public class CouchbaseService extends Service {
 		 */
 		@Override
 		public void stopCouchbase() {
-			stop();
+
 		}
 	};
 
@@ -219,137 +208,51 @@ public class CouchbaseService extends Service {
 	 * Start the Couchbase service in a separate thread
 	 */
 	void startCouchbaseService() {
-
 		String path = CouchbaseMobile.dataPath();
-
-		String cmd = path + "/couchdb/bin/couchdb_wrapper";
-
+		String apkPath = getPackageCodePath();
+		
+		try {
+			new File(path + "/apk.ez").delete();
+			Runtime.getRuntime().exec(new String[] { "ln", "-s", apkPath, path + "/apk.ez" });
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
 		String[] plainArgs = {
-				"+Bd", "-noinput", "sasl", "errlog_type", "all", "+K", "true",
-				"-env", "ERL_LIBS", path + "/couchdb/lib/couchdb/erlang/lib", "-couch_ini",
+				"beam", "-K", "true", "--", 
+				"-noinput",
+				"-boot_var", "APK", path + "/apk.ez",
+				"-kernel", "inetrc", "\""+ path + "/erlang/bin/erl_inetrc\"",
+				"-native_lib_path", path + "/lib",
+				"-sasl", "errlog_type", "all",
+				"-boot", path + "/erlang/bin/start",
+				"-root", path + "/apk.ez/assets",
+				"-eval", "code:load_file(jninif), R = application:start(couch), io:format(\"~w~n\",[R]).",
+				"-couch_ini",
 				path + "/couchdb/etc/couchdb/default.ini",
 				path + "/couchdb/etc/couchdb/local.ini",
 				path + "/couchdb/etc/couchdb/android.default.ini"};
 
-		//build up the command as an array of strings
-		ArrayList<String> command = new ArrayList<String>();
-		command.add(shell);
-		command.add(cmd);
-		command.addAll(Arrays.asList(plainArgs));
+		ArrayList<String> args = new ArrayList<String>(Arrays.asList(plainArgs));
 		for (String iniPath : CouchbaseMobile.getCustomIniFiles()) {
-			command.add(iniPath);
+			args.add(iniPath);
 		}
-		command.add(path + "/couchdb/etc/couchdb/overrides.ini -s couch");
 
-		ProcessBuilder pb = new ProcessBuilder();
-		pb.command(command);
-
-		try {
-			//start the process
-			process = pb.start();
-
-			//connect the streams
-			in = new BufferedReader(new InputStreamReader(process.getInputStream()), 8192);
-			out = new PrintStream(process.getOutputStream());
-			err = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-
-			couchbaseRunThread = new Thread(new Runnable() {
-				@Override
-				public void run() {
-					try {
-						String line;
-						while ((line = in.readLine()) != null) {
-							Log.v(CouchbaseMobile.TAG, line);
-							if (line.contains("has started on")) {
-								couchbaseStarted = true;
-								url = new URL(matchURLs(line).get(0));
-								Message.obtain(mHandler, CouchbaseService.COUCHBASE_STARTED, url)
-									.sendToTarget();
-							}
-						}
-					} catch (Exception e) {
-						Log.v(CouchbaseMobile.TAG, "Couchbase has stopped unexpectedly", e);
-						Message.obtain(mHandler, CouchbaseService.ERROR, e).sendToTarget();
-						couchbaseStopping = true;
-					}
-					finally {
-						if(!couchbaseStopping) {
-							//detect an unplanned shutdown that was not caught by exception
-							Log.v(CouchbaseMobile.TAG, "Couchbase has stopped unexpectedly");
-							Message.obtain(mHandler, CouchbaseService.ERROR, "Couchbase has stopped unexpectedly").sendToTarget();
-						}
-						try {
-							out.close();
-							in.close();
-							err.close();
-						} catch (IOException e) {
-							Log.v(CouchbaseMobile.TAG, "Error closing streams", e);
-						}
-						finally {
-							couchbaseStarted = false;
-							stopSelf();
-						}
-					}
-				}
-			});
-			couchbaseRunThread.start();
-
-
-		} catch (IOException ioe) {
-			Log.v(CouchbaseMobile.TAG, "Failed to start Couchbase process", ioe);
-			Message.obtain(mHandler, CouchbaseService.ERROR, ioe).sendToTarget();
-		}
+		args.add(path + "/couchdb/etc/couchdb/overrides.ini");
+		final String[] argv = args.toArray(new String[args.size()]);
+		final String sopath = path + "/lib/libbeam.so";
+		final String bindir = path + "/erlang/bin";
+		couchbaseRunThread = new Thread() {
+			public void run() {
+				ErlangThread.setHandler(mHandler);
+				ErlangThread.start_erlang(bindir, sopath, argv);
+				Log.i(CouchbaseMobile.TAG, "Erlang thread ended.");
+			}
+		};
+		couchbaseRunThread.start();
 	}
 
-	/**
-	 * Stop the Couchbase process
-	 */
-    private void stop() {
-        if(!couchbaseStopping) {
-                couchbaseStopping = true;
-
-                try {
-                        //if installation is running, cancel it and wait for it to finish
-                        if(couchbaseInstallThread != null) {
-                                couchbaseInstallThread.cancelInstallation();
-                                couchbaseInstallThread.join();
-                        }
-
-                        //if couchbase process is running kill the process
-                        if(process != null) {
-                                process.destroy();
-                                process = null;
-                        }
-
-                        //now wait for the thread to finish
-                        if(couchbaseRunThread != null) {
-                                couchbaseRunThread.join();
-                                couchbaseRunThread = null;
-                        }
-                } catch (InterruptedException e) {
-                        Log.v(CouchbaseMobile.TAG, "Interrupted while waiting for threads to die");
-                }
-                finally {
-                        couchbaseStopping = false;
-                }
-        }
-}
-
-	/**
-	 * Utility function to parse a string of text for URLs
-	 *
-	 * @param text the input text to search
-	 * @return array of strings that are URLs
-	 */
-	private ArrayList<String> matchURLs(String text) {
-		ArrayList<String> links = new ArrayList<String>();
-		String regex = "\\(?\\b(http://|www[.])[-A-Za-z0-9+&@#/%?=~_()|!:,.;]*[-A-Za-z0-9+&@#/%=~_()|]";
-		Matcher m = Pattern.compile(regex).matcher(text);
-		while(m.find()) {
-			links.add(m.group());
-		}
-		return links;
-	}
 
 	/**
 	 * Utility function to join a collection of strings with a delimiter

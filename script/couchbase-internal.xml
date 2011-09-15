@@ -14,11 +14,15 @@
   </target>
 
   <target name="update-libaries">
+    <unzip dest="${project.path}" src="${couchbase.tmp.dir}/overlay.zip"/>
     <copy todir="${project.path}/libs">
       <fileset dir="${couchbase.tmp.dir}">
         <include name="Couchbase/libs/**/*"/>
       </fileset>
-      <globmapper from="Couchbase/libs/*" to="*"/>
+    <filtermapper>
+         <replacestring from="Couchbase/libs/lib" to="armeabi/lib"/>
+         <replacestring from="Couchbase/libs/" to=""/>
+     </filtermapper>
     </copy>
   </target>	
   
@@ -27,10 +31,24 @@
       <fileset dir="${couchbase.tmp.dir}">
         <include name="Couchbase/assets/**/*"/>
       </fileset>
-      <flattenmapper/>
+      <filtermapper>
+          <replacestring from="Couchbase/assets/" to=""/>
+      </filtermapper>
     </copy>
   </target>
   
+	<target name="check-classpath-otp">
+		<condition property="otp.exists">
+			<resourcecontains resource="${project.path}/.classpath" substring="libs/OtpErlang.jar"/>
+		</condition>		
+	</target>
+	
+	<target name="update-classpath-otp" depends="check-classpath-otp" unless="otp.exists">
+		<!-- backup existing .classpath -->
+		<copy file="${project.path}/.classpath" tofile="${project.path}/.classpath.orig1"/>
+		<xslt style="${couchbase.tmp.dir}/Couchbase/script/classpath.otp.xsl" in="${project.path}/.classpath.orig1" out="${project.path}/.classpath"/>
+    </target>
+
 	<target name="check-classpath-compress">
 		<condition property="commons.compress.exists">
 			<resourcecontains resource="${project.path}/.classpath" substring="libs/commons-compress-1.0.jar"/>
@@ -55,7 +73,7 @@
 		<xslt style="${couchbase.tmp.dir}/Couchbase/script/classpath.couchbase.xsl" in="${project.path}/.classpath.orig2" out="${project.path}/.classpath"/>
 	</target>	
 	
-	<target name="update-classpath" depends="update-classpath-compress, update-classpath-couchbase">
+	<target name="update-classpath" depends="update-classpath-compress, update-classpath-couchbase, update-classpath-otp">
 		<delete file="${project.path}/.classpath.orig1"/>
 		<delete file="${project.path}/.classpath.orig2"/>
 	</target>

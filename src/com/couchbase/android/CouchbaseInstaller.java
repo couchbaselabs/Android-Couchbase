@@ -257,7 +257,6 @@ public class CouchbaseInstaller extends Thread {
 			};
 
 			replace(CouchbaseMobile.dataPath() + "/couchdb/bin/couchjs_wrapper", replacements);
-			replace(CouchbaseMobile.dataPath() + "/couchdb/bin/couchdb_wrapper", replacements);
 			replace(CouchbaseMobile.dataPath() + "/couchdb/etc/couchdb/android.default.ini", replacements);
 		}
 	}

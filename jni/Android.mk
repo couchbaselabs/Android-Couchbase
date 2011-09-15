@@ -2,8 +2,8 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
-LOCAL_MODULE    := com_google_ase_Exec
-LOCAL_SRC_FILES := com_google_ase_Exec.cpp
-LOCAL_LDLIBS    := -llog
+LOCAL_MODULE    := com_couchbase_android_ErlangThread
+LOCAL_SRC_FILES := com_couchbase_android_ErlangThread.cpp android_jni_nif.cpp
+LOCAL_LDLIBS    := -llog -ldl -L$(LOCAL_PATH) -lbeam
 
 include $(BUILD_SHARED_LIBRARY)

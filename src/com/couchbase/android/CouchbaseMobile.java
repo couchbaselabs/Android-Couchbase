@@ -43,7 +43,11 @@ public class CouchbaseMobile {
 	 * recommended to use this default package name as it ensures this library
 	 * was built to support these binaries
 	 */
+<<<<<<< HEAD
 	private final static String defaultRelease = "couchbase-1.0-dp-2e5b5e3";
+=======
+	private final static String defaultRelease = "couchbase-1.0-dp-572c764";
+>>>>>>> CouchDB in-process changes
 
 	/**
 	 * List of user defined ini files

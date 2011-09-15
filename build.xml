@@ -95,6 +95,10 @@
 	<target name="dist" depends="couchbase-jar">
 		<zip destfile="bin/Couchbase.zip">
 
+            <fileset dir="${basedir}">
+				<include name="overlay.zip"/>
+            </fileset>
+
 		    <mappedresources>
 		      <fileset dir="${basedir}">
 				<include name="assets/**/*"/>
@@ -124,7 +128,19 @@
 				<include name="README.txt"/>
 			</fileset>
 		</zip>
-	</target>
+    </target>
+
+    <target name="jni">
+        <unzip src="${basedir}/overlay.zip" dest="${basedir}/jni">
+            <patternset>
+                <include name="libs/armeabi/libbeam.so"/>
+            </patternset>
+            <mapper type="flatten"/>
+        </unzip>
+        <exec dir="${basedir}/jni" executable="sh">
+            <arg line="${ndk.dir}/ndk-build"/>
+        </exec>
+    </target>
 
 	<target name="javadoc">
 		 <javadoc
