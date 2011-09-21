@@ -7,8 +7,6 @@ import java.io.StringWriter;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
 
 import android.app.Service;
 import android.content.Intent;
@@ -31,19 +29,14 @@ public class CouchbaseService extends Service {
 	public static final int ERROR = 0;
 
 	/**
-	 * Couchbase installer has made progress
-	 */
-	public static final int PROGRESS = 1;
-
-	/**
 	 * Couchbase installation complete
 	 */
-	public static final int COMPLETE = 2;
+	public static final int COMPLETE = 1;
 
 	/**
 	 * Couchbase startup complete
 	 */
-	public static final int COUCHBASE_STARTED = 3;
+	public static final int COUCHBASE_STARTED = 2;
 
 	/**
 	 * System shell
@@ -54,16 +47,6 @@ public class CouchbaseService extends Service {
 	 * The URL Couchbase is running on
 	 */
 	private static URL url;
-
-	/**
-	 * Has Couchbase started
-	 */
-	private boolean couchbaseStarted = false;
-
-	/**
-	 * Is Couchbase Stopping
-	 */
-	private boolean couchbaseStopping = false;
 
 	/**
 	 * Delegate used to notify the client of events in the service
@@ -108,28 +91,16 @@ public class CouchbaseService extends Service {
 					}
 				}
 				break;
-			case PROGRESS:
-				if (couchbaseDelegate != null) {
-					couchbaseDelegate.installing(msg.arg1, msg.arg2);
-				}
-				break;
 			case COMPLETE:
 				couchbaseInstallThread = null;
 				if(couchbaseRunThread == null)
 					startCouchbaseService();
 				else
-					if (couchbaseDelegate != null) {
-						couchbaseDelegate.couchbaseStarted(url.getHost(),
-								url.getPort());
-					}
+					couchbaseStarted();
 				break;
 			case COUCHBASE_STARTED:
 				url = (URL) msg.obj;
-				
-				if (couchbaseDelegate != null) {
-					couchbaseDelegate.couchbaseStarted(url.getHost(),
-							url.getPort());
-				}
+				couchbaseStarted();
 				break;
 			}
 		}
@@ -158,30 +129,18 @@ public class CouchbaseService extends Service {
 	public class CouchbaseServiceImpl extends Binder implements ICouchbaseService {
 
 		@Override
-		public void startCouchbase(ICouchbaseDelegate cb, final String pkg) {
+		public void startCouchbase(ICouchbaseDelegate cb) {
 			couchbaseDelegate = cb;
-			if (!CouchbaseInstaller.checkInstalled(pkg)) {
-				installCouchbase(pkg);
-			} else {
-				if (couchbaseStarted == true) {
-					couchbaseStarted();
-				} else {
-					if(couchbaseRunThread == null)
-						startCouchbaseService();
-					else
-						if (couchbaseDelegate != null) {
-							couchbaseDelegate.couchbaseStarted(url.getHost(),
-									url.getPort());
-						}
-				}
+
+			if (couchbaseRunThread == null) {
+				//if we're not running, trigger install
+				//this will be no-op if already installed
+				//and will trigger startup through handler
+				installCouchbase();
 			}
-		}
-
-		/*
-		 */
-		@Override
-		public void stopCouchbase() {
-
+			else {
+				couchbaseStarted();
+			}
 		}
 	};
 
@@ -195,12 +154,10 @@ public class CouchbaseService extends Service {
 	}
 
 	/**
-	 * Install Couchbase in a separate thrad
-	 *
-	 * @param pkg the package identifier to verify and install if necessary
+	 * Install Couchbase in a separate thread
 	 */
-	private void installCouchbase(final String pkg) {
-		couchbaseInstallThread = new CouchbaseInstaller(pkg, mHandler, this);
+	private void installCouchbase() {
+		couchbaseInstallThread = new CouchbaseInstaller(getPackageCodePath(), mHandler);
 		couchbaseInstallThread.start();
 	}
 
@@ -210,17 +167,18 @@ public class CouchbaseService extends Service {
 	void startCouchbaseService() {
 		String path = CouchbaseMobile.dataPath();
 		String apkPath = getPackageCodePath();
-		
+
 		try {
 			new File(path + "/apk.ez").delete();
 			Runtime.getRuntime().exec(new String[] { "ln", "-s", apkPath, path + "/apk.ez" });
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+		} catch (IOException e) {
+			Log.v(CouchbaseMobile.TAG, "Error symlinking apk.ez", e);
+			Message.obtain(mHandler, CouchbaseService.ERROR, e).sendToTarget();
+			return;
 		}
-		
+
 		String[] plainArgs = {
-				"beam", "-K", "true", "--", 
+				"beam", "-K", "true", "--",
 				"-noinput",
 				"-boot_var", "APK", path + "/apk.ez",
 				"-kernel", "inetrc", "\""+ path + "/erlang/bin/erl_inetrc\"",
@@ -251,26 +209,6 @@ public class CouchbaseService extends Service {
 			}
 		};
 		couchbaseRunThread.start();
-	}
-
-
-	/**
-	 * Utility function to join a collection of strings with a delimiter
-	 *
-	 * @param a collection of strings to join
-	 * @param delimiter string to insert between joined strings
-	 * @return the joined string
-	 */
-	public static String join(Collection<String> s, String delimiter) {
-		StringBuffer buffer = new StringBuffer();
-		Iterator<String> iter = s.iterator();
-		while (iter.hasNext()) {
-			buffer.append(iter.next());
-			if (iter.hasNext()) {
-				buffer.append(delimiter);
-			}
-		}
-		return buffer.toString();
 	}
 
 }

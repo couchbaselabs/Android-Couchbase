@@ -13,12 +13,7 @@ interface ICouchbaseService
      * when the service is ready.
 	 *
 	 * @param callback the delegate to receive notifications from this service
-	 * @param pkg the version string the installer will verify, and install if necessary
 	 */
-    void startCouchbase(ICouchbaseDelegate callback, String pkg);
+    void startCouchbase(ICouchbaseDelegate callback);
 
-    /**
-     * Stops the Couchbase service.
-     */
-    void stopCouchbase();
 }

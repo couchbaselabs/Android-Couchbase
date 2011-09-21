@@ -1,20 +1,23 @@
 package com.couchbase.android;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.zip.GZIPInputStream;
-
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.apache.commons.compress.utils.IOUtils;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import android.os.Handler;
 import android.os.Message;
@@ -27,19 +30,35 @@ import android.util.Log;
 public class CouchbaseInstaller extends Thread {
 
 	/**
-	 * The name of the package to install
+	 * Prefix of files in the APK needing to be installed
 	 */
-	private String pkg;
+	private static final String INSTALL_ASSET_PREFIX = "assets/install/";
+
+	/**
+	 * Files needing to have variables replaced
+	 */
+	private static final String[] FILES_NEEDING_REPLACEMENTS = {
+		"couchdb/bin/couchjs_wrapper",
+		"couchdb/etc/couchdb/android.default.ini"
+	};
+
+	/**
+	 * Variables to be replaced
+	 */
+	private static String[][] replacements = new String[][] {
+			{ "%couch_data_dir%", CouchbaseMobile.externalPath() },
+			{ "%couch_installation_dir%", CouchbaseMobile.dataPath() }
+	};
+
+	/**
+	 * The path to the APK
+	 */
+	private String apkPath;
 
 	/**
 	 * The handler for communicating with the service thread
 	 */
 	private Handler handler;
-
-	/**
-	 * The Couchbase service
-	 */
-	private CouchbaseService service;
 
 	/**
 	 * Has this installation been cancelled
@@ -49,14 +68,12 @@ public class CouchbaseInstaller extends Thread {
 	/**
 	 * Create a new Thread to install Couchbase
 	 *
-	 * @param pkg the package to install
+	 * @param apkPath the path to the APK file
 	 * @param handler the handler for communicating with the service
-	 * @param service the Couchbase service
 	 */
-	public CouchbaseInstaller(String pkg, Handler handler, CouchbaseService service) {
-		this.pkg = pkg;
+	public CouchbaseInstaller(String apkPath, Handler handler) {
+		this.apkPath = apkPath;
 		this.handler = handler;
-		this.service = service;
 	}
 
 	/**
@@ -82,219 +99,173 @@ public class CouchbaseInstaller extends Thread {
 	 * @return the path to the index file
 	 */
 	public static String indexFile() {
-		return CouchbaseMobile.dataPath() + "/installedfiles.index";
+		return CouchbaseMobile.dataPath() + "/installedfiles.ser";
 	}
 
 	/**
-	 * Checks to see if the requested package is already installed, removes old installations
-	 * and installs the package if necessary
+	 * Get a HashMap containing the CRCs of the files currently installed
 	 *
-	 * @param pkg the identifier of the package to be installed
-	 * @param handler the handler connecting the installation thread with the application main thread
-	 * @param service service reference to the Couchbase service performing the installation
-	 * @throws IOException
+	 * If no file can be found with the serialized HashMap, return a new empty one
+	 *
+	 * @return HashMap with String key (filename) and Long value (CRC)
 	 */
-	public void doInstall()
-		throws IOException {
-
-		if(!checkInstalled(pkg)) {
-		    /*
-	         * WARNING: the following two stanzas delete any previously installed
-	         * CouchDB and Erlang binaries stored in the app data space.  It isn't
-	         * usually possible (in a non-rooted or emulated environment) to hurt
-	         * other data directories but one must be especially careful when carrying
-	         * out this sort of operation on external storage where there are no ways
-	         * of protecting ourselves from wiping the entire SD card with a typo.
-	         */
-
-		    File couchbaseDir = new File(CouchbaseMobile.dataPath() + "/couchdb");
-
-		    if (couchbaseDir.exists()) {
-		        deleteDirectory(couchbaseDir);
-		    }
-
-		    File erlangDir = new File(CouchbaseMobile.dataPath() + "/erlang");
-
-		    if (erlangDir.exists()) {
-		        deleteDirectory(erlangDir);
-		    }
-
-			installPackage();
+	@SuppressWarnings("unchecked")
+	public HashMap<String, Long> getInstalledFilesCRC() {
+		FileInputStream fis = null;
+		ObjectInputStream ois = null;
+		try {
+			fis = new FileInputStream(indexFile());
+			ois = new ObjectInputStream(fis);
+			HashMap<String, Long> fileCRCs = (HashMap<String,Long>)ois.readObject();
+			return fileCRCs;
+		} catch (Exception e) {
+			return new HashMap<String,Long>();
 		}
-
-		Message done = Message.obtain();
-		done.what = CouchbaseService.COMPLETE;
-		handler.sendMessage(done);
+		finally {
+			try {
+				if(ois != null) {
+					ois.close();
+				}
+				if(fis != null) {
+					fis.close();
+				}
+			} catch (IOException e) {
+				Log.v(CouchbaseMobile.TAG, "Exception closing installed files CRC streams");
+			}
+		}
 	}
 
 	/**
-	 * This fetches a given package from the assets directory and tarbombs it to the filsystem
+	 * Update the HashMap containing the CRCs of the files installed
 	 *
-	 * @param pkg the identifier of the package to be installed
-	 * @param handler the handler connecting the installation thread with the application main thread
-	 * @param service reference to the Couchbase service performing the installation
+	 * @param fileCRCs the updated HashMap
 	 * @throws IOException
 	 */
-	private void installPackage()
-			throws IOException {
-
-		Log.v(CouchbaseMobile.TAG, "Installing " + pkg);
-
-		// Later used initialization of /data/data/...
-		ArrayList<String> installedfiles = new ArrayList<String>();
-		ArrayList<String> allInstalledFiles = new ArrayList<String>();
-		Map<String, Integer> allInstalledFileModes = new HashMap<String, Integer>();
-		Map<String, String> allInstalledFileTypes = new HashMap<String, String>();
-		Map<String, String> allInstalledLinks = new HashMap<String, String>();
-
-		// XXX Stupid android 2.1 bug
-		// XXX Cannot load compressed assets >1M and
-		// XXX most files are automatically compressed,
-		// XXX Certain files are NOT auto compressed (eg. jpg).
-		InputStream instream = service.getAssets().open(pkg + ".tgz" + ".jpg");
-
-		// Ensure /sdcard/Android/data/com.my.app/db exists
-		File externalPath = new File(CouchbaseMobile.externalPath() + "/db/");
-		if (!externalPath.exists()) {
-			externalPath.mkdirs();
+	public void setInstalledFilesCRC(HashMap<String, Long> fileCRCs) throws IOException {
+		FileOutputStream fos = null;
+		ObjectOutputStream oos = null;
+		try {
+			File indexFile = new File(indexFile());
+			createFileAndParentDirectoriesIfNecessary(indexFile);
+			fos = new FileOutputStream(indexFile());
+			oos = new ObjectOutputStream(fos);
+			oos.writeObject(fileCRCs);
 		}
+		finally {
+			try {
+				oos.close();
+				fos.close();
+			} catch (IOException e) {
+				Log.v(CouchbaseMobile.TAG, "Exception closing installed files CRC streams");
+			}
+		}
+	}
 
-		TarArchiveInputStream tarstream = new TarArchiveInputStream(
-				new GZIPInputStream(instream));
-		TarArchiveEntry e = null;
+	/**
+	 * Perform the installation
+	 *
+	 * @throws IOException
+	 */
+	public void doInstall() throws IOException {
 
-		float filesInArchive = 0;
-		float filesUnpacked = 0;
+		HashMap<String, Long> installedFilesCRCs = getInstalledFilesCRC();
 
-		while ((e = tarstream.getNextTarEntry()) != null && (!cancelled)) {
+		ZipFile apk = new ZipFile(apkPath);
+		int numberOfFilesUpdated = 0;
 
-			String fullName = CouchbaseMobile.dataPath() + "/" + e.getName();
-			// Obtain count of files in this archive so that we can indicate install progress
-			if (filesInArchive == 0 && e.getName().startsWith("filecount")) {
-				String[] count = e.getName().split("\\.");
-				filesInArchive = Integer.valueOf(count[1]);
-				continue;
+		Enumeration<? extends ZipEntry> e = apk.entries();
+		while(e.hasMoreElements() && !cancelled) {
+			ZipEntry entry = e.nextElement();
+			String name = entry.getName();
+			if(name.startsWith(INSTALL_ASSET_PREFIX)) {
+				String restOfName = name.substring(INSTALL_ASSET_PREFIX.length());
+				String fullName = CouchbaseMobile.dataPath() + "/" + restOfName;
+
+				Log.v(CouchbaseMobile.TAG, "Checking CRC of " + fullName);
+
+				Long crc = entry.getCrc();
+				Long installedCRC = installedFilesCRCs.get(fullName);
+				if(!crc.equals(installedCRC)) {
+					if(installedCRC != null) {
+						Log.v(CouchbaseMobile.TAG, "Need to update.  Installed: " + Long.toHexString(installedCRC) + " APK: " + Long.toHexString(crc));
+					}
+					else {
+						Log.v(CouchbaseMobile.TAG, "Need to update, new file with CRC: " + Long.toHexString(crc));
+					}
+					//need to update the file
+		            File file = new File(fullName);
+		            createFileAndParentDirectoriesIfNecessary(file);
+
+		            FileOutputStream fos = new FileOutputStream(fullName);
+		            copy(apk.getInputStream(entry), fos);
+
+		            //if this file needs replacement, do it now
+		            if(Arrays.asList(FILES_NEEDING_REPLACEMENTS).contains(restOfName)) {
+		                Log.v(CouchbaseMobile.TAG, "Performing replacements in " + restOfName);
+		                replace(fullName, replacements);
+		            }
+
+		            //now update the hash
+		            installedFilesCRCs.put(fullName, crc);
+		            numberOfFilesUpdated++;
+				}
+				else {
+					Log.v(CouchbaseMobile.TAG, "CRCs match.  Installed: " + Long.toHexString(installedCRC) + " APK: " + Long.toHexString(crc));
+				}
 			}
 
-			if (e.isDirectory()) {
-				File f = new File(fullName);
-				if (!f.exists() && !new File(fullName).mkdirs()) {
-					throw new IOException("Unable to create directory: " + fullName);
-				}
-				Log.v(CouchbaseMobile.TAG, "MKDIR: " + fullName);
-
-				allInstalledFiles.add(fullName);
-				allInstalledFileModes.put(fullName, e.getMode());
-				allInstalledFileTypes.put(fullName, "d");
-			} else if (!"".equals(e.getLinkName())) {
-				Log.v(CouchbaseMobile.TAG, "LINK: " + fullName + " -> " + e.getLinkName());
-				Runtime.getRuntime().exec(new String[] { "ln", "-s", fullName, e.getLinkName() });
-				installedfiles.add(fullName);
-
-				allInstalledFiles.add(fullName);
-				allInstalledLinks.put(fullName, e.getLinkName());
-				allInstalledFileModes.put(fullName, e.getMode());
-				allInstalledFileTypes.put(fullName, "l");
-			} else {
-				File target = new File(fullName);
-				if(target.getParent() != null) {
-					new File(target.getParent()).mkdirs();
-				}
-				Log.v(CouchbaseMobile.TAG, "Extracting " + fullName);
-				IOUtils.copy(tarstream, new FileOutputStream(target));
-				installedfiles.add(fullName);
-
-				allInstalledFiles.add(fullName);
-				allInstalledFileModes.put(fullName, e.getMode());
-				allInstalledFileTypes.put(fullName, "f");
-			}
-
-			// getMode: 420 (644), 493 (755), 509 (775), 511 (link 775)
-			//Log.v(TAG, "File mode is " + e.getMode());
-
-			//TODO: Set to actual tar perms.
-			Runtime.getRuntime().exec("chmod 755 " + fullName);
-
-			// This tells the ui how much progress has been made
-			Message progress = new Message();
-			progress.arg1 = (int) ++filesUnpacked;
-			progress.arg2 = (int) filesInArchive;
-			progress.what = CouchbaseService.PROGRESS;
-			handler.sendMessage(progress);
 		}
 
-		tarstream.close();
-		instream.close();
-
-		//only proceed if we haven't been canelled
 		if(!cancelled) {
-			FileWriter iLOWriter = new FileWriter(CouchbaseMobile.dataPath() + "/" + pkg + ".installedfiles");
-			for (String file : installedfiles) {
-				iLOWriter.write(file+"\n");
-			}
-			iLOWriter.close();
+			//now write our installed CRCs back to disk
+			setInstalledFilesCRC(installedFilesCRCs);
 
-			/*
-			 * Write out full list of all installed files + file modes (the data in this file
-			 * only represents the most recently installed release)
-			 */
-			iLOWriter = new FileWriter(indexFile());
+			Log.v(CouchbaseMobile.TAG, "Updated " + numberOfFilesUpdated + " files");
 
-			for (String file : allInstalledFiles) {
-				iLOWriter.write(
-						allInstalledFileTypes.get(file).toString() + " " +
-								allInstalledFileModes.get(file).toString() + " " +
-								file + " " +
-								allInstalledLinks.get(file) + "\n");
-			}
-
-			iLOWriter.close();
-
-			String[][] replacements = new String[][]{
-					{"%couch_data_dir%", CouchbaseMobile.externalPath()},
-					{"%couch_installation_dir%", CouchbaseMobile.dataPath()},
-					{"%sdk_int%", Integer.toString(android.os.Build.VERSION.SDK_INT)}
-			};
-
-			replace(CouchbaseMobile.dataPath() + "/couchdb/bin/couchjs_wrapper", replacements);
-			replace(CouchbaseMobile.dataPath() + "/couchdb/etc/couchdb/android.default.ini", replacements);
+			Message done = Message.obtain();
+			done.what = CouchbaseService.COMPLETE;
+			handler.sendMessage(done);
 		}
+
 	}
 
 	/**
-	 * Verifies that requested version of Couchbase is installed by checking for the presence of
-	 * the package files we write upon installation in the data directory of the app.
-	 *
-	 * @param pkg version string identifying the pckage
-	 * @return true if the package is installed, false otherwise
+	 * Utility to copy bytes from an InputStream to an OutputStream
+	 * @param is the InputStream
+	 * @param os the OutputStream
+	 * @throws IOException
 	 */
-	public static boolean checkInstalled(String pkg) {
+	public static void copy(InputStream is, OutputStream os) throws IOException {
 
-		File file = new File(CouchbaseMobile.dataPath() + "/" + pkg + ".installedfiles");
-		if (!file.exists()) {
-			return false;
-		}
+		final int COPY_BUFFER = 2048;
 
-		return true;
+        BufferedOutputStream bos = new BufferedOutputStream(os, COPY_BUFFER);
+        BufferedInputStream bis = new BufferedInputStream(is);
+
+        int count;
+        byte data[] = new byte[COPY_BUFFER];
+
+        while ((count = bis.read(data, 0, COPY_BUFFER)) != -1) {
+            bos.write(data, 0, count);
+        }
+        bos.flush();
+        bos.close();
 	}
 
 	/**
-	 * Recursively delete directory
+	 * Utility to create a file and all parent directories if necesary
 	 *
-	 * @param dir the directory to delete
-	 * @return success/failure
+	 * @param file the file to be created
+	 * @throws IOException
 	 */
-	public static Boolean deleteDirectory(File dir) {
-		if (dir.isDirectory()) {
-			String[] children = dir.list();
-			for (int i = 0; i < children.length; i++) {
-				boolean success = deleteDirectory(new File(dir, children[i]));
-				if (!success) {
-					return false;
-				}
-			}
-		}
-		return dir.delete();
+	public static void createFileAndParentDirectoriesIfNecessary(File file) throws IOException {
+        if(!file.exists()) {
+            File parent = file.getParentFile();
+            parent.mkdirs();
+
+            file.createNewFile();
+            Runtime.getRuntime().exec("chmod 755 " + file.getAbsolutePath());
+        }
 	}
 
 	/**

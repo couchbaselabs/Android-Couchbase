@@ -16,14 +16,6 @@ public interface ICouchbaseDelegate
 	 */
 	void couchbaseStarted(String host, int port);
 
-	/**
-	 * Callback for notifications on how the Couchbase install is progressing
-	 *
-	 * @param completed the number of files installed
-	 * @param total the total number of files to install
-	 */
-    void installing(int completed, int total);
-
     /**
      * Callback for notification that Couchbase has exited
      *

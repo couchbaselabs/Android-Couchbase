@@ -9,7 +9,7 @@
     <fail unless="couchbase.tmp.dir" message="Property couchbase.tmp.dir must be set"/>
   </target>
 
-  <target name="manual" depends="_init, update-libaries,update-assets,update-classpath,suggest-manifest">
+  <target name="manual" depends="_init, update-libaries,update-classpath,suggest-manifest">
 
   </target>
 
@@ -26,17 +26,6 @@
     </copy>
   </target>	
   
-  <target name="update-assets">
-    <copy todir="${project.path}/assets">
-      <fileset dir="${couchbase.tmp.dir}">
-        <include name="Couchbase/assets/**/*"/>
-      </fileset>
-      <filtermapper>
-          <replacestring from="Couchbase/assets/" to=""/>
-      </filtermapper>
-    </copy>
-  </target>
-  
 	<target name="check-classpath-otp">
 		<condition property="otp.exists">
 			<resourcecontains resource="${project.path}/.classpath" substring="libs/OtpErlang.jar"/>
@@ -45,21 +34,9 @@
 	
 	<target name="update-classpath-otp" depends="check-classpath-otp" unless="otp.exists">
 		<!-- backup existing .classpath -->
-		<copy file="${project.path}/.classpath" tofile="${project.path}/.classpath.orig1"/>
-		<xslt style="${couchbase.tmp.dir}/Couchbase/script/classpath.otp.xsl" in="${project.path}/.classpath.orig1" out="${project.path}/.classpath"/>
+		<copy file="${project.path}/.classpath" tofile="${project.path}/.classpath.orig3"/>
+		<xslt style="${couchbase.tmp.dir}/Couchbase/script/classpath.otp.xsl" in="${project.path}/.classpath.orig3" out="${project.path}/.classpath"/>
     </target>
-
-	<target name="check-classpath-compress">
-		<condition property="commons.compress.exists">
-			<resourcecontains resource="${project.path}/.classpath" substring="libs/commons-compress-1.0.jar"/>
-		</condition>		
-	</target>
-	
-	<target name="update-classpath-compress" depends="check-classpath-compress" unless="commons.compress.exists">
-		<!-- backup existing .classpath -->
-		<copy file="${project.path}/.classpath" tofile="${project.path}/.classpath.orig1"/>
-		<xslt style="${couchbase.tmp.dir}/Couchbase/script/classpath.compress.xsl" in="${project.path}/.classpath.orig1" out="${project.path}/.classpath"/>
-	</target>
 	
 	<target name="check-classpath-couchbase">
 		<condition property="couchbase.exists">
@@ -73,9 +50,9 @@
 		<xslt style="${couchbase.tmp.dir}/Couchbase/script/classpath.couchbase.xsl" in="${project.path}/.classpath.orig2" out="${project.path}/.classpath"/>
 	</target>	
 	
-	<target name="update-classpath" depends="update-classpath-compress, update-classpath-couchbase, update-classpath-otp">
-		<delete file="${project.path}/.classpath.orig1"/>
+	<target name="update-classpath" depends="update-classpath-couchbase, update-classpath-otp">
 		<delete file="${project.path}/.classpath.orig2"/>
+		<delete file="${project.path}/.classpath.orig3"/>
 	</target>
 	
 	<!-- Permissions -->

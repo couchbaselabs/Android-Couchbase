@@ -34,22 +34,6 @@ public class CouchbaseMobile {
 	private static String appNamespace;
 
 	/**
-	 * The name of the binary package of Couchbase stored in assets
-	 */
-	private static String releaseName;
-
-	/**
-	 * The default package name of Couchbase binaries, applications are
-	 * recommended to use this default package name as it ensures this library
-	 * was built to support these binaries
-	 */
-<<<<<<< HEAD
-	private final static String defaultRelease = "couchbase-1.0-dp-2e5b5e3";
-=======
-	private final static String defaultRelease = "couchbase-1.0-dp-572c764";
->>>>>>> CouchDB in-process changes
-
-	/**
 	 * List of user defined ini files
 	 */
 	private static ArrayList<String> customIniFiles = new ArrayList<String>();
@@ -107,7 +91,7 @@ public class CouchbaseMobile {
 	 * @return the Couchbase service connection
 	 */
 	public ServiceConnection startCouchbase() {
-		return startCouchbase(ctx, defaultRelease);
+		return startCouchbase(ctx);
 	}
 
 	/**
@@ -119,11 +103,9 @@ public class CouchbaseMobile {
 	 * @see ICouchbaseService
 	 *
 	 * @param ctx the Android context
-	 * @param release the identifier of the release to use
 	 * @return Couchbase service connection
 	 */
-	public ServiceConnection startCouchbase(Context ctx, String release) {
-		releaseName = release;
+	public ServiceConnection startCouchbase(Context ctx) {
 		ctx.bindService(new Intent(ctx, CouchbaseService.class), mConnection, Context.BIND_AUTO_CREATE);
 		return mConnection;
 	}
@@ -207,7 +189,7 @@ public class CouchbaseMobile {
 		@Override
 		public void onServiceConnected(ComponentName className, final IBinder service) {
 				couchbaseService = (ICouchbaseService)service;
-				couchbaseService.startCouchbase(couchbaseDelegate, releaseName);
+				couchbaseService.startCouchbase(couchbaseDelegate);
 		}
 
 		@Override

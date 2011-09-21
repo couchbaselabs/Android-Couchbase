@@ -53,9 +53,6 @@ Now that your project supports Couchbase, starting Cocuhbase is accomplished by 
         public void couchbaseStarted(String host, int port) {}
     
         @Override
-        public void installing(int completed, int total) {}
-    
-        @Override
         public void exit(String error) {}
     };
 </pre>
