@@ -16,13 +16,9 @@
   <target name="update-libaries">
     <unzip dest="${project.path}" src="${couchbase.tmp.dir}/overlay.zip"/>
     <copy todir="${project.path}/libs">
-      <fileset dir="${couchbase.tmp.dir}">
-        <include name="Couchbase/libs/**/*"/>
+      <fileset dir="${couchbase.tmp.dir}/Couchbase/libs">
+        <include name="**/*"/>
       </fileset>
-    <filtermapper>
-         <replacestring from="Couchbase/libs/lib" to="armeabi/lib"/>
-         <replacestring from="Couchbase/libs/" to=""/>
-     </filtermapper>
     </copy>
   </target>	
   
