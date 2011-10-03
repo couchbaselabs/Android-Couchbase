@@ -88,7 +88,7 @@ public class CouchbaseInstaller extends Thread {
 		try {
 			doInstall();
 		} catch (IOException e) {
-			Log.v(CouchbaseMobile.TAG, "Error installing Couchbase", e);
+			Log.e(CouchbaseMobile.TAG, "Error installing Couchbase", e);
 			Message.obtain(handler, CouchbaseService.ERROR, e).sendToTarget();
 		}
 	}
@@ -156,7 +156,7 @@ public class CouchbaseInstaller extends Thread {
 				oos.close();
 				fos.close();
 			} catch (IOException e) {
-				Log.v(CouchbaseMobile.TAG, "Exception closing installed files CRC streams");
+				Log.e(CouchbaseMobile.TAG, "Exception closing installed files CRC streams");
 			}
 		}
 	}
