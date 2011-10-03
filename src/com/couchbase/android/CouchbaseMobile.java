@@ -54,6 +54,14 @@ public class CouchbaseMobile {
 	private static Context ctx;
 
 	/**
+	 *
+	 */
+	public CouchbaseMobile(Context appCtx) {
+		ctx = appCtx;
+		appNamespace = ctx.getPackageName();
+	}
+
+	/**
 	 * A few of the utility functions require some of the same context
 	 * that cannot be gotten automatically, so made this a class to
 	 * store some context for later functions

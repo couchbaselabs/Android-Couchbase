@@ -16,6 +16,9 @@ import android.os.IBinder;
 import android.os.Message;
 import android.util.Log;
 
+import com.couchbase.android.Intents.CouchbaseError;
+import com.couchbase.android.Intents.CouchbaseStarted;
+
 /**
  * Implementation of the Couchbase service
  *
@@ -76,20 +79,8 @@ public class CouchbaseService extends Service {
 
 			switch (msg.what) {
 			case ERROR:
-				if(msg.obj instanceof Exception) {
-					Exception e = (Exception) msg.obj;
-					StringWriter sw = new StringWriter();
-					e.printStackTrace(new PrintWriter(sw));
-					String stacktrace = sw.toString();
-					if (couchbaseDelegate != null) {
-						couchbaseDelegate.exit(stacktrace);
-					}
-				}
-				else if(msg.obj instanceof String){
-					if (couchbaseDelegate != null) {
-						couchbaseDelegate.exit((String)msg.obj);
-					}
-				}
+				Exception e = (Exception) msg.obj;
+				couchbaseError(e);
 				break;
 			case COMPLETE:
 				couchbaseInstallThread = null;
@@ -148,8 +139,37 @@ public class CouchbaseService extends Service {
 	 * Nofity the delegate that Couchbase has started
 	 */
 	void couchbaseStarted() {
+
+		if(url != null) {
+			//send broadcast intent
+			Intent intent = new Intent(CouchbaseStarted.ACTION);
+			intent.putExtra(CouchbaseStarted.HOST, url.getHost());
+			intent.putExtra(CouchbaseStarted.PORT, url.getPort());
+			getApplicationContext().sendBroadcast(intent);
+
+			//notify delegate
+			if (couchbaseDelegate != null) {
+				couchbaseDelegate.couchbaseStarted(url.getHost(), url.getPort());
+			}
+		}
+	}
+
+	/**
+	 * Notify the delegate that Couchbase has encountered an error
+	 */
+	void couchbaseError(Exception e) {
+		StringWriter sw = new StringWriter();
+		e.printStackTrace(new PrintWriter(sw));
+		String stacktrace = sw.toString();
+
+		//send broadcast intent
+		Intent intent = new Intent(CouchbaseError.ACTION);
+		intent.putExtra(CouchbaseError.MESSAGE, stacktrace);
+		getApplicationContext().sendBroadcast(intent);
+
+		//notify delegate
 		if (couchbaseDelegate != null) {
-			couchbaseDelegate.couchbaseStarted(url.getHost(), url.getPort());
+			couchbaseDelegate.exit(stacktrace);
 		}
 	}
 

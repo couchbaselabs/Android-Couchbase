@@ -79,7 +79,47 @@ Now that your project supports Couchbase, starting Cocuhbase is accomplished by 
     
         startCouchbase();
     }
-</pre>    
+</pre>
+
+## Broadcast Intents
+
+A Broadcast Receiver registered to listen for the right events can now be used instead of a delegate.
+
+1.  Optionally, use the CouchbaseMobile constructor without the delegate parameter
+
+<pre>
+    CouchbaseMobile couch = new CouchbaseMobile(getBaseContext());
+</pre>
+
+2.  Declare a Broadcast Receiver
+
+<pre>
+    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if(CouchbaseStarted.ACTION.equals(intent.getAction())) {
+
+            }
+            else if(CouchbaseError.ACTION.equals(intent.getAction())) {
+
+            }
+        }
+    };
+</pre>
+
+3.  Register the receiver to listen for the appropriate events
+
+<pre>
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        ...
+
+        registerReceiver(mReceiver, new IntentFilter(CouchbaseStarted.ACTION));
+        registerReceiver(mReceiver, new IntentFilter(CouchbaseError.ACTION));
+    }
+</pre>
 
 ## Examples
 
