@@ -62,10 +62,11 @@ A Broadcast Receiver registered to listen for the right events can now be used i
         @Override
         public void onReceive(Context context, Intent intent) {
             if(CouchbaseStarted.ACTION.equals(intent.getAction())) {
-
+                String host = CouchbaseStarted.getHost(intent);
+                int port = CouchbaseStarted.getPort(intent);
             }
             else if(CouchbaseError.ACTION.equals(intent.getAction())) {
-
+                String message = CouchbaseError.getMessage(intent);
             }
         }
     };
