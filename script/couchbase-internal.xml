@@ -15,11 +15,6 @@
 
   <target name="update-libaries">
     <unzip dest="${project.path}" src="${couchbase.tmp.dir}/overlay.zip"/>
-    <copy todir="${project.path}/libs">
-      <fileset dir="${couchbase.tmp.dir}/Couchbase/libs">
-        <include name="**/*"/>
-      </fileset>
-    </copy>
   </target>	
   
 	<target name="check-classpath-otp">

@@ -92,51 +92,7 @@
 		</jar>
 	</target>
 
-	<target name="dist" depends="couchbase-jar">
-		<zip destfile="bin/Couchbase.zip">
-
-            <fileset dir="${basedir}">
-				<include name="overlay.zip"/>
-            </fileset>
-
-		    <mappedresources>
-		      <fileset dir="${basedir}">
-				<include name="assets/**/*"/>
-				<include name="libs/**/*"/>
-				<include name="script/**/*"/>
-		      </fileset>
-		      <globmapper from="*" to="Couchbase/*"/>
-		    </mappedresources>
-
-		    <mappedresources>
-		      <fileset dir="${basedir}/bin">
-				<include name="couchbase.jar"/>
-		      </fileset>
-		      <globmapper from="*" to="Couchbase/libs/*"/>
-		    </mappedresources>
-
-		</zip>
-
-		<zip destfile="bin/Android-Couchbase.zip">
-			<fileset dir="bin">
-				<include name="Couchbase.zip"/>
-			</fileset>
-			<fileset dir="script">
-				<include name="couchbase.xml"/>
-			</fileset>
-			<fileset dir="doc">
-				<include name="README.txt"/>
-			</fileset>
-		</zip>
-    </target>
-
     <target name="jni">
-        <unzip src="${basedir}/overlay.zip" dest="${basedir}/jni">
-            <patternset>
-                <include name="libs/armeabi/libbeam.so"/>
-            </patternset>
-            <mapper type="flatten"/>
-        </unzip>
         <exec dir="${basedir}/jni" executable="sh">
             <arg line="${ndk.dir}/ndk-build"/>
         </exec>
