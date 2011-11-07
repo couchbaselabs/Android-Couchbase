@@ -90,6 +90,28 @@ For examples please look at:
 * https://github.com/daleharvey/Android-MobileFuton
 * https://github.com/couchbaselabs/AndroidGrocerySync
 
+## Manual Installation
+
+In some environments it may not be possible to use the couchbase.xml ant script installer.  Couchbase can be installed manually using the following steps.
+
+1.  Unzip the Couchbase.zip archive.  This will produce another zip file named overlay.zip.
+2.  Extract the contents of the overlay.zip file into your project.  This will place all assets and libraries in the correct location within the structure of your project.
+
+    cd <project root>
+    unzip /<path to>/overlay.zip
+
+3.  Update the project's AndroidManifest.xml to declare the Couchbase service and request the required permissions.
+
+    Within the "application" section add:
+
+    <service android:name="com.couchbase.android.CouchbaseService" android:enabled="true" android:exported="false"/>
+
+    Within the "manifest" section add:
+
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
 ## Join us
 
 There is a Google Group here for Mobile Couchbase at https://groups.google.com/group/mobile-couchbase. Let's talk about how to optimize the Erlang build, what the best Java APIs are for CouchDB, how to take advantage of replication on mobile devices. It'll be fun.

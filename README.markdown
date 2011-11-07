@@ -140,6 +140,28 @@ Replacing the value for sdk.dir with the path to the Android SDK on the build se
 
 The current build of Android Couchbase embed the CouchDB binaries. There is information on how to build these binaries on the [SourceBuild](https://github.com/couchbase/Android-Couchbase-SourceBuild) project.
 
+## Manual Installation
+
+In some environments it may not be possible to use the couchbase.xml ant script installer.  Couchbase can be installed manually using the following steps.
+
+1.  Unzip the Couchbase.zip archive.  This will produce another zip file named overlay.zip.
+2.  Extract the contents of the overlay.zip file into your project.  This will place all assets and libraries in the correct location within the structure of your project.
+
+    cd <project root>
+    unzip /<path to>/overlay.zip
+
+3.  Update the project's AndroidManifest.xml to declare the Couchbase service and request the required permissions.
+
+    Within the "application" section add:
+
+    <service android:name="com.couchbase.android.CouchbaseService" android:enabled="true" android:exported="false"/>
+
+    Within the "manifest" section add:
+
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
 ## License
 
 Portions under Apache, Erlang, and other licenses.
