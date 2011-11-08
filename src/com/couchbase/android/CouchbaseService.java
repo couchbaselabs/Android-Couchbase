@@ -14,6 +14,7 @@ import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.os.Process;
 import android.util.Log;
 
 import com.couchbase.android.Intents.CouchbaseError;
@@ -145,6 +146,7 @@ public class CouchbaseService extends Service {
 			Intent intent = new Intent(CouchbaseStarted.ACTION);
 			intent.putExtra(CouchbaseStarted.HOST, url.getHost());
 			intent.putExtra(CouchbaseStarted.PORT, url.getPort());
+			intent.putExtra(CouchbaseStarted.PID, Process.myPid());
 			getApplicationContext().sendBroadcast(intent);
 
 			//notify delegate
@@ -165,6 +167,7 @@ public class CouchbaseService extends Service {
 		//send broadcast intent
 		Intent intent = new Intent(CouchbaseError.ACTION);
 		intent.putExtra(CouchbaseError.MESSAGE, stacktrace);
+		intent.putExtra(CouchbaseError.PID, Process.myPid());
 		getApplicationContext().sendBroadcast(intent);
 
 		//notify delegate

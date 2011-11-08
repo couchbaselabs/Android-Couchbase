@@ -35,6 +35,11 @@ public class Intents {
 		public final static String PORT = "port";
 
 		/**
+		 * Name used in Intext Extra for storing process id
+		 */
+		public final static String PID = "pid";
+
+		/**
 		 * Utility to get the host Couchbase is listening on
 		 * @param intent the intent to parse
 		 * @return the hostname
@@ -50,6 +55,15 @@ public class Intents {
 		 */
 		public static int getPort(Intent intent) {
 			return intent.getIntExtra(PORT, -1);
+		}
+
+		/**
+		 * Utility to get the pid of the process for this Couchbase
+		 * @param intent the intent to parse
+		 * @return the pid
+		 */
+		public static int getPid(Intent intent) {
+		    return intent.getIntExtra(PID, -1);
 		}
 
 	}
@@ -74,6 +88,11 @@ public class Intents {
 		 */
 		public final static String MESSAGE = "message";
 
+        /**
+         * Name used in Intext Extra for storing process id
+         */
+        public final static String PID = "pid";
+
 		/**
 		 * Utility to get the message from Couchbase
 		 * @param intent the intent to parse
@@ -82,6 +101,15 @@ public class Intents {
 		public static String getMessage(Intent intent) {
 			return intent.getStringExtra(MESSAGE);
 		}
+
+        /**
+         * Utility to get the pid of the process for this Couchbase
+         * @param intent the intent to parse
+         * @return the pid
+         */
+        public static int getPid(Intent intent) {
+            return intent.getIntExtra(PID, -1);
+        }
 
 	}
 
