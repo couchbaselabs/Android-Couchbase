@@ -14,6 +14,10 @@
   </target>
 
   <target name="update-libaries">
+    <!-- delete old couchbase jar -->
+    <delete quiet="true">
+      <fileset dir="${project.path}/libs" includes="couchbase*.jar"/>
+    </delete>
     <unzip dest="${project.path}" src="${couchbase.tmp.dir}/overlay.zip"/>
   </target>	
   

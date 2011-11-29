@@ -87,7 +87,7 @@
     <path id="android.libraries.jars"><path refid="project.libraries.jars" /></path>
 
         <target name="couchbase-jar" depends="-compile">
-                <jar destfile="bin/couchbase.jar">
+                <jar destfile="bin/couchbase-${version}.jar">
                         <fileset dir="bin/classes">
                                 <include name="**/*"/>
                                 <exclude name="**/R*"/>
@@ -97,6 +97,15 @@
                         </fileset>
                 </jar>
         </target>
+
+    <target name="couchbase-script">
+        <copy todir="bin/script">
+            <fileset dir="script"/>
+            <filterset>
+                <filter token="VERSION" value="${version}"/>
+            </filterset>
+        </copy>
+    </target>
 
     <target name="jni">
         <exec dir="${basedir}/jni" executable="sh">

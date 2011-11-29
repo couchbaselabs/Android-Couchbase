@@ -95,12 +95,13 @@ For examples please look at:
 In some environments it may not be possible to use the couchbase.xml ant script installer.  Couchbase can be installed manually using the following steps.
 
 1.  Unzip the Couchbase.zip archive.  This will produce another zip file named overlay.zip.
-2.  Extract the contents of the overlay.zip file into your project.  This will place all assets and libraries in the correct location within the structure of your project.
+2.  Remove any existing couchbase*.jar file from <project root>/libs
+3.  Extract the contents of the overlay.zip file into your project.  This will place all assets and libraries in the correct location within the structure of your project.
 
     cd <project root>
     unzip /<path to>/overlay.zip
 
-3.  Update the project's AndroidManifest.xml to declare the Couchbase service and request the required permissions.
+4.  Update the project's AndroidManifest.xml to declare the Couchbase service and request the required permissions.
 
     Within the "application" section add:
 
