@@ -103,6 +103,7 @@
             <fileset dir="script"/>
             <filterset>
                 <filter token="VERSION" value="${version}"/>
+                <filter token="OTPVERSION" value="${otp.version}"/>
             </filterset>
         </copy>
     </target>

@@ -17,29 +17,18 @@
     <!-- delete old couchbase jar -->
     <delete quiet="true">
       <fileset dir="${project.path}/libs" includes="couchbase*.jar"/>
+      <fileset dir="${project.path}/libs" includes="OtpErlang*.jar"/>
     </delete>
     <unzip dest="${project.path}" src="${couchbase.tmp.dir}/overlay.zip"/>
   </target>	
   
-	<target name="check-classpath-otp">
-		<condition property="otp.exists">
-			<resourcecontains resource="${project.path}/.classpath" substring="libs/OtpErlang.jar"/>
-		</condition>		
-	</target>
-	
-	<target name="update-classpath-otp" depends="check-classpath-otp" unless="otp.exists">
+	<target name="update-classpath-otp">
 		<!-- backup existing .classpath -->
 		<copy file="${project.path}/.classpath" tofile="${project.path}/.classpath.orig3"/>
 		<xslt style="${couchbase.tmp.dir}/Couchbase/script/classpath.otp.xsl" in="${project.path}/.classpath.orig3" out="${project.path}/.classpath"/>
-    </target>
+        </target>
 	
-	<target name="check-classpath-couchbase">
-		<condition property="couchbase.exists">
-			<resourcecontains resource="${project.path}/.classpath" substring="libs/couchbase.jar"/>
-		</condition>		
-	</target>
-	
-	<target name="update-classpath-couchbase" depends="check-classpath-couchbase" unless="couchbase.exists">
+	<target name="update-classpath-couchbase">
 		<!-- backup existing .classpath -->
 		<copy file="${project.path}/.classpath" tofile="${project.path}/.classpath.orig2"/>
 		<xslt style="${couchbase.tmp.dir}/Couchbase/script/classpath.couchbase.xsl" in="${project.path}/.classpath.orig2" out="${project.path}/.classpath"/>
