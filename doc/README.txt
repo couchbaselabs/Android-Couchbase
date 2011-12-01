@@ -113,6 +113,14 @@ In some environments it may not be possible to use the couchbase.xml ant script 
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
 
+## Requirements
+
+- Android 2.1 or newer
+- Eclipse 3.6.2 or newer (if using Eclipse)
+- Ant 1.7.1 or newer (if using Ant outside of Eclipse)
+- When testing in the emulator, be sure to create an SD Card with sufficient space for your databases
+- If using views in the emulator, create an AVD with CPU/ABI set to armeabi-v7a
+
 ## Join us
 
 There is a Google Group here for Mobile Couchbase at https://groups.google.com/group/mobile-couchbase. Let's talk about how to optimize the Erlang build, what the best Java APIs are for CouchDB, how to take advantage of replication on mobile devices. It'll be fun.
