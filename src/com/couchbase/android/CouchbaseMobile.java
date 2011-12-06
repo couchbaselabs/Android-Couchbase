@@ -1,9 +1,11 @@
 package com.couchbase.android;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
 
@@ -14,6 +16,7 @@ import android.content.ServiceConnection;
 import android.content.res.AssetManager;
 import android.os.Environment;
 import android.os.IBinder;
+import android.util.Log;
 
 /**
  * This is the minimal API for building against Android-Couchbase, its
@@ -52,6 +55,11 @@ public class CouchbaseMobile {
 	 * Reference to the Android context
 	 */
 	private static Context ctx;
+
+	/**
+	 * Couchbase Mobile Version Number
+	 */
+	private static String version;
 
 	/**
 	 *
@@ -205,4 +213,27 @@ public class CouchbaseMobile {
 			couchbaseService = null;
 		}
 	};
+
+	public String getVersion() {
+	    String result = "unknown";
+
+	    if(ctx != null  && version == null) {
+	        try {
+	            InputStream is = ctx.getAssets().open("CouchbaseVersion.txt");
+	            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+	            version = br.readLine();
+	            result = version;
+	            br.close();
+	            is.close();
+	        }
+	        catch(IOException e) {
+	            Log.e(TAG, "Unabled to read CouchbaseVersion.txt", e);
+	        }
+	    }
+	    else {
+	        result = version;
+	    }
+
+	    return result;
+	}
 }
